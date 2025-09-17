@@ -1,28 +1,28 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, AlertCircle, Droplets, Zap, Activity } from 'lucide-react';
+import { ArrowLeft, ArrowRight, AlertCircle, Factory, Truck, Building2 } from 'lucide-react';
 
 const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperationType, onNext, onBack }) => {
   // Función para obtener icono de tipo de operación
   const getOperationTypeInfo = (type) => {
     const types = {
-      upstream: {
-        name: 'Upstream',
-        description: 'Exploración y Producción',
-        icon: <Droplets size={18} />,
+      manufacturing: {
+        name: 'Manufactura',
+        description: 'Procesos de Producción',
+        icon: <Factory size={18} />,
         color: '#3b82f6',
         bgColor: '#dbeafe'
       },
-      midstream: {
-        name: 'Midstream', 
-        description: 'Transporte y Procesamiento',
-        icon: <Zap size={18} />,
+      logistics: {
+        name: 'Logística', 
+        description: 'Cadena de Suministro',
+        icon: <Truck size={18} />,
         color: '#f59e0b',
         bgColor: '#fef3c7'
       },
-      downstream: {
-        name: 'Downstream',
-        description: 'Refinación y Productos',
-        icon: <Activity size={18} />,
+      infrastructure: {
+        name: 'Infraestructura',
+        description: 'Construcción y Desarrollo',
+        icon: <Building2 size={18} />,
         color: '#10b981',
         bgColor: '#dcfce7'
       }
@@ -275,7 +275,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
           Volver al Dashboard
         </button>
         <h1 className="step-title">Crear Nuevo Digital Twin</h1>
-        <p className="step-subtitle">Configuración inicial del proyecto petrolero</p>
+        <p className="step-subtitle">Configuración inicial del proyecto</p>
       </div>
 
       <div className="form-container">
@@ -287,7 +287,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
             className="form-input"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            placeholder="Ej: Campo Marino Golfo Norte - Fase 1"
+            placeholder="Ej: Línea de Producción A - Optimización 2024"
             autoComplete="off"
           />
           <p className="form-help">
@@ -296,9 +296,9 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
         </div>
 
         <div className="form-section">
-          <label className="form-label">Tipo de Operación Petrolera</label>
+          <label className="form-label">Tipo de Operación</label>
           <div className="operation-types">
-            {['upstream', 'midstream', 'downstream'].map((type) => {
+            {['manufacturing', 'logistics', 'infrastructure'].map((type) => {
               const info = getOperationTypeInfo(type);
               return (
                 <div
@@ -328,7 +328,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
               <h4>Configuración del Digital Twin</h4>
               <p>
                 El sistema generará automáticamente un workflow personalizado basado en el tipo de operación seleccionada. 
-                Los datos se integrarán desde Excel para crear una simulación en tiempo real del proyecto.
+                Los datos se integrarán desde Excel y otras fuentes para crear una simulación en tiempo real del proyecto.
               </p>
             </div>
           </div>

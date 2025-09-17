@@ -9,8 +9,9 @@ import NavigationMenu from './NavigationMenu';
 import Dashboard from './Dashboard';
 import GestionProyectos from './GestionProyectos';
 import Configuracion from './Configuracion';
+import DataManagement from './DataManagement'; // NUEVO COMPONENTE
 
-const PetroDTApp = () => {
+const DTApp = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user] = useState({
@@ -34,6 +35,12 @@ const PetroDTApp = () => {
       notifications: 2
     },
     { 
+      id: 'data', 
+      label: 'Fuentes de Datos', 
+      icon: Database,
+      notifications: 0
+    },
+    { 
       id: 'configuration', 
       label: 'Configuración', 
       icon: Settings,
@@ -47,6 +54,8 @@ const PetroDTApp = () => {
         return <Dashboard />;
       case 'projects':
         return <GestionProyectos />;
+      case 'data':
+        return <DataManagement />;
       case 'configuration':
         return <Configuracion />;
       default:
@@ -55,9 +64,9 @@ const PetroDTApp = () => {
   };
 
   return (
-    <div className="petrodt-app">
+    <div className="dt-app">
       <style jsx>{`
-        .petrodt-app {
+        .dt-app {
           display: flex;
           height: 100vh;
           background: #fafbfc;
@@ -312,7 +321,7 @@ const PetroDTApp = () => {
                 <input 
                   type="text" 
                   className="search-input"
-                  placeholder="Buscar proyectos, tareas, usuarios..."
+                  placeholder="Buscar proyectos, datos, usuarios..."
                 />
               </div>
 
@@ -337,4 +346,4 @@ const PetroDTApp = () => {
   );
 };
 
-export default PetroDTApp;
+export default DTApp;

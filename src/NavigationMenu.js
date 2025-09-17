@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, X } from 'lucide-react';
+import { Activity, X } from 'lucide-react';
 
 const NavigationMenu = ({ 
   activeSection, 
@@ -201,11 +201,11 @@ const NavigationMenu = ({
         <div className="sidebar-header">
           <div className="logo-container">
             <div className="logo-icon">
-              <Droplets size={20} />
+              <Activity size={20} />
             </div>
             <div className="logo-text">
-              <h1>PetroDT</h1>
-              <p>Digital Twin Platform</p>
+              <h1>DigitalTwin</h1>
+              <p>Platform</p>
             </div>
           </div>
           <button className="close-btn" onClick={onClose}>

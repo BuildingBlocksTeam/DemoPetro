@@ -1,61 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, TrendingDown, Droplets, Zap, Activity, DollarSign,
+  TrendingUp, TrendingDown, Factory, Zap, Activity, DollarSign,
   Users, AlertTriangle, CheckCircle, Clock, Shield, Target,
-  Calendar, BarChart3, Gauge, ThermometerSun, MapPin, RefreshCw
+  Calendar, BarChart3, Gauge, Building, MapPin, RefreshCw
 } from 'lucide-react';
 
 const Dashboard = () => {
   const [realTimeData, setRealTimeData] = useState({
     timestamp: new Date(),
     production: {
-      oil: 312000,
-      gas: 1.2,
+      total: 15420,
+      efficiency: 87.3,
       trend: 12.5
     },
     operations: {
-      activePlatforms: 156,
+      activeProjects: 24,
       efficiency: 94.2,
-      safetyDays: 847
+      qualityScore: 96.8
     },
     financial: {
-      dailyRevenue: 8200000,
-      monthlyRevenue: 247000000,
+      dailyRevenue: 4200000,
+      monthlyRevenue: 127000000,
       trend: 15.2
     }
   });
 
   const [kpis] = useState([
     {
-      title: 'Producción Diaria',
-      value: '312,000',
-      unit: 'BOPD',
+      title: 'Eficiencia Operacional',
+      value: '87.3',
+      unit: '%',
       trend: 12.5,
-      icon: Droplets,
+      icon: Target,
       color: '#0066cc'
     },
     {
-      title: 'Gas Natural',
-      value: '1.2',
-      unit: 'BCFD',
+      title: 'Throughput Total',
+      value: '15.4K',
+      unit: 'units',
       trend: 8.3,
-      icon: Zap,
+      icon: Factory,
       color: '#f59e0b'
     },
     {
       title: 'Ingresos Diarios',
-      value: '$8.2M',
+      value: '$4.2M',
       unit: 'USD',
       trend: 15.2,
       icon: DollarSign,
       color: '#22c55e'
     },
     {
-      title: 'Eficiencia Operacional',
-      value: '94.2%',
-      unit: '',
+      title: 'Índice de Calidad',
+      value: '96.8',
+      unit: '%',
       trend: 2.1,
-      icon: Target,
+      icon: Shield,
       color: '#8b5cf6'
     }
   ]);
@@ -63,42 +63,42 @@ const Dashboard = () => {
   const [projects] = useState([
     {
       id: 1,
-      name: "Águila Dorada",
-      type: 'upstream',
+      name: "Optimización Línea Producción A",
+      type: 'manufacturing',
       progress: 78,
       status: 'active',
-      budget: 850000000,
-      spent: 663000000,
+      budget: 2500000,
+      spent: 1950000,
       team: 12,
-      nextMilestone: 'Perforación AG-08',
+      nextMilestone: 'Instalación Equipos Nueva Línea',
       daysLeft: 23,
-      location: 'Golfo de México'
+      location: 'Planta Norte'
     },
     {
       id: 2,
-      name: "Terminal Los Andes",
-      type: 'midstream',
-      progress: 23,
+      name: "Centro Distribución Regional",
+      type: 'logistics',
+      progress: 45,
       status: 'planning',
-      budget: 420000000,
-      spent: 96600000,
+      budget: 1800000,
+      spent: 810000,
       team: 8,
-      nextMilestone: 'Inicio construcción',
+      nextMilestone: 'Aprobación Final Diseño',
       daysLeft: 45,
-      location: 'Costa del Pacífico'
+      location: 'Zona Industrial Sur'
     },
     {
       id: 3,
-      name: "Refinería del Norte",
-      type: 'downstream',
-      progress: 56,
+      name: "Modernización Infraestructura IT",
+      type: 'infrastructure',
+      progress: 62,
       status: 'active',
-      budget: 1200000000,
-      spent: 672000000,
+      budget: 3200000,
+      spent: 1984000,
       team: 24,
-      nextMilestone: 'Pruebas FCC',
+      nextMilestone: 'Migración Servidor Principal',
       daysLeft: 12,
-      location: 'Monterrey'
+      location: 'Oficina Central'
     }
   ]);
 
@@ -106,15 +106,15 @@ const Dashboard = () => {
     {
       id: 1,
       type: 'warning',
-      title: 'Presión elevada en Plataforma AG-05',
-      message: 'Presión de línea de producción 15% por encima del límite',
+      title: 'Eficiencia por debajo del target en Línea 3',
+      message: 'Eficiencia operacional 8% por debajo del objetivo establecido',
       timestamp: '2024-01-15T14:30:00Z',
       priority: 'high'
     },
     {
       id: 2,
       type: 'info',
-      title: 'Mantenimiento programado Terminal LA',
+      title: 'Mantenimiento programado Sistema A',
       message: 'Mantenimiento preventivo programado para el 20/01/2024',
       timestamp: '2024-01-15T13:45:00Z',
       priority: 'medium'
@@ -122,20 +122,20 @@ const Dashboard = () => {
     {
       id: 3,
       type: 'success',
-      title: 'Pozo AG-07 en producción',
-      message: 'Pozo completado exitosamente, producción inicial 2,400 BOPD',
+      title: 'Milestone completado en Proyecto Norte',
+      message: 'Fase de diseño completada exitosamente, dentro del cronograma',
       timestamp: '2024-01-15T12:15:00Z',
       priority: 'medium'
     }
   ]);
 
   const [operationalMetrics] = useState([
-    { label: 'Plataformas Activas', value: 156, unit: 'unidades', status: 'normal' },
-    { label: 'Pozos Productores', value: 892, unit: 'activos', status: 'normal' },
-    { label: 'Refinerías Operando', value: 12, unit: 'plantas', status: 'normal' },
-    { label: 'Personal en Campo', value: 3420, unit: 'personas', status: 'normal' },
-    { label: 'Reservas Probadas', value: 847, unit: 'MMBO', status: 'good' },
-    { label: 'Índice de Seguridad', value: 99.97, unit: '%', status: 'excellent' }
+    { label: 'Proyectos Activos', value: 24, unit: 'proyectos', status: 'normal' },
+    { label: 'Procesos Optimizados', value: 156, unit: 'procesos', status: 'good' },
+    { label: 'Sistemas Integrados', value: 12, unit: 'sistemas', status: 'normal' },
+    { label: 'Personal Involucrado', value: 3420, unit: 'personas', status: 'normal' },
+    { label: 'Eficiencia General', value: 94.2, unit: '%', status: 'excellent' },
+    { label: 'Índice Satisfacción', value: 98.5, unit: '%', status: 'excellent' }
   ]);
 
   // Simulación de datos en tiempo real
@@ -146,8 +146,8 @@ const Dashboard = () => {
         timestamp: new Date(),
         production: {
           ...prev.production,
-          oil: prev.production.oil + (Math.random() - 0.5) * 100,
-          gas: prev.production.gas + (Math.random() - 0.5) * 0.01
+          total: prev.production.total + Math.floor(Math.random() * 20 - 10),
+          efficiency: Math.max(75, Math.min(100, prev.production.efficiency + (Math.random() - 0.5) * 2))
         }
       }));
     }, 5000);
@@ -168,10 +168,19 @@ const Dashboard = () => {
 
   const getProjectTypeColor = (type) => {
     switch (type) {
-      case 'upstream': return '#3b82f6';
-      case 'midstream': return '#f59e0b';
-      case 'downstream': return '#22c55e';
+      case 'manufacturing': return '#3b82f6';
+      case 'logistics': return '#f59e0b';
+      case 'infrastructure': return '#22c55e';
       default: return '#6b7280';
+    }
+  };
+
+  const getProjectTypeIcon = (type) => {
+    switch (type) {
+      case 'manufacturing': return <Factory size={16} />;
+      case 'logistics': return <Zap size={16} />;
+      case 'infrastructure': return <Building size={16} />;
+      default: return <Activity size={16} />;
     }
   };
 
@@ -378,9 +387,15 @@ const Dashboard = () => {
           font-size: 12px;
           color: #6b7684;
           margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .project-type {
+          display: flex;
+          align-items: center;
+          gap: 6px;
           padding: 2px 6px;
           border-radius: 12px;
           font-size: 10px;
@@ -601,9 +616,9 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <div className="dashboard-header">
           <div className="header-info">
-            <h1>Centro de Control Operacional</h1>
+            <h1>Centro de Control Digital Twin</h1>
             <p className="header-subtitle">
-              Monitoreo en tiempo real de operaciones petroleras globales
+              Monitoreo en tiempo real de operaciones y proyectos
             </p>
           </div>
           
@@ -648,7 +663,7 @@ const Dashboard = () => {
           <div className="projects-section">
             <h3 className="section-title">
               <BarChart3 size={18} />
-              Proyectos Críticos
+              Proyectos Estratégicos
             </h3>
             
             <div className="projects-list">
@@ -662,12 +677,13 @@ const Dashboard = () => {
                         {project.location}
                       </p>
                     </div>
-                    <span 
+                    <div 
                       className="project-type" 
                       style={{background: getProjectTypeColor(project.type)}}
                     >
+                      {getProjectTypeIcon(project.type)}
                       {project.type}
-                    </span>
+                    </div>
                   </div>
 
                   <div className="progress-section">
@@ -686,7 +702,7 @@ const Dashboard = () => {
                   <div className="project-metrics">
                     <div className="metric-item">
                       <div className="metric-value">
-                        ${(project.spent / 1000000).toFixed(0)}M
+                        ${(project.spent / 1000000).toFixed(1)}M
                       </div>
                       <div className="metric-label">Gastado</div>
                     </div>
@@ -707,7 +723,7 @@ const Dashboard = () => {
           <div className="alerts-section">
             <h3 className="section-title">
               <AlertTriangle size={18} />
-              Alertas Operacionales
+              Alertas del Sistema
             </h3>
             
             <div className="alerts-list">

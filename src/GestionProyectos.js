@@ -1,16 +1,20 @@
-// GestionProyectos.js - Componente Principal
+// GestionProyectos.js - Componente Principal Mejorado
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Upload, Link, FileSpreadsheet, ArrowLeft, ArrowRight, RefreshCw,
-  CheckCircle, Check, Database, BarChart3, Workflow, Droplets, Zap, Activity
+  CheckCircle, Check, Database, BarChart3, Workflow, Factory, Truck, Building2,
+  Target
 } from 'lucide-react';
 
-// Importar todos los componentes separados
+// Importar todos los componentes
 import ProjectNameForm from './ProjectNameForm';
 import ProjectList from './ProjectList';
 import WorkflowCanvas from './WorkflowCanvas';
 import ProjectData from './ProjectData';
 import EditProject from './EditProject';
+import DataSourceEditor from './DataSourceEditor';
+import StatisticsPanel from './StatisticsPanel';
+import KPIManager from './KPIManager';
 
 const GestionProyectos = () => {
   // Estados principales de navegación
@@ -19,9 +23,9 @@ const GestionProyectos = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [processing, setProcessing] = useState(false);
 
-  // Estados para el formulario - COMPLETAMENTE SEPARADOS
+  // Estados para el formulario
   const [projectName, setProjectName] = useState('');
-  const [operationType, setOperationType] = useState('upstream');
+  const [operationType, setOperationType] = useState('manufacturing');
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState('');
   const [projectFile, setProjectFile] = useState(null);
   const [projectData, setProjectData] = useState(null);
@@ -32,6 +36,11 @@ const GestionProyectos = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Estados para modales y paneles
+  const [showDataEditor, setShowDataEditor] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [showKPIManager, setShowKPIManager] = useState(false);
 
   // Referencias
   const fileInputRef = useRef(null);
@@ -44,429 +53,324 @@ const GestionProyectos = () => {
     notifications: true
   });
 
-  // Workflows específicos y OPTIMIZADOS para cada tipo de operación petrolera
-  const getPetroleumWorkflows = useCallback((operationType, projectName) => {
+  // Workflows genéricos y OPTIMIZADOS para diferentes tipos de operación
+  const getGenericWorkflows = useCallback((operationType, projectName) => {
     const workflows = {
-      upstream: {
-        name: 'Upstream - Exploración y Producción',
-        description: 'Ciclo completo desde prospección sísmica hasta producción comercial',
-        totalDuration: '32 meses',
-        estimatedCost: '$2.8B',
-        riskScore: 7.2,
+      manufacturing: {
+        name: 'Manufactura - Proceso de Producción',
+        description: 'Flujo completo desde diseño hasta entrega del producto manufacturado',
+        totalDuration: '18 meses',
+        estimatedCost: '$1.8B',
+        riskScore: 6.2,
         aiRecommendations: [
-          { type: 'warning', message: 'Ventana meteorológica crítica: operaciones marinas limitadas a Mayo-Octubre', priority: 'crítica' },
-          { type: 'optimization', message: 'Paralelizar estudios ambientales con diseño reduce timeline 4 meses', priority: 'alta' },
-          { type: 'risk', message: 'Zona geológicamente compleja - implementar programa piloto', priority: 'alta' },
-          { type: 'cost', message: 'Contratos EPC integrados pueden reducir CAPEX 15%', priority: 'media' }
+          { type: 'optimization', message: 'Implementar lean manufacturing reduce desperdicio 25%', priority: 'alta' },
+          { type: 'cost', message: 'Automatización de línea reduce costos operativos 18%', priority: 'alta' },
+          { type: 'quality', message: 'Sistema Six Sigma mejora calidad y reduce defectos', priority: 'media' },
+          { type: 'efficiency', message: 'IoT en equipos permite mantenimiento predictivo', priority: 'media' }
         ],
         nodes: [
           {
-            id: 'seismic_acquisition',
-            name: 'Adquisición Sísmica 3D',
-            type: 'exploration',
+            id: 'product_design',
+            name: 'Diseño del Producto',
+            type: 'design',
             status: 'completed',
-            duration: '6 meses',
-            cost: '$85M',
-            progress: 100,
-            position: { x: 100, y: 120 },
-            kpis: { coverage: '4,500 km²', resolution: '12.5m', confidence: '96%' }
-          },
-          {
-            id: 'geological_interpretation',
-            name: 'Interpretación Geológica',
-            type: 'analysis',
-            status: 'completed',
-            duration: '4 meses',
-            cost: '$45M',
-            progress: 100,
-            position: { x: 400, y: 120 },
-            kpis: { prospects: '8 identificados', resources: '420 MMBO', success_prob: '85%' }
-          },
-          {
-            id: 'environmental_permits',
-            name: 'Permisos Ambientales',
-            type: 'regulatory',
-            status: 'running',
-            duration: '10 meses',
-            cost: '$65M',
-            progress: 85,
-            position: { x: 700, y: 120 },
-            kpis: { agencies: '7 involucradas', approval_prob: '92%', timeline: 'En plazo' }
-          },
-          {
-            id: 'well_engineering',
-            name: 'Ingeniería de Pozos',
-            type: 'engineering',
-            status: 'running',
-            duration: '6 meses',
-            cost: '$95M',
-            progress: 75,
-            position: { x: 1000, y: 120 },
-            kpis: { wells_designed: '6', max_depth: '4,800m', success_rate: '87%' }
-          },
-          {
-            id: 'rig_contracting',
-            name: 'Contratación Taladro',
-            type: 'procurement',
-            status: 'scheduled',
             duration: '3 meses',
-            cost: '$340M',
-            progress: 0,
-            position: { x: 100, y: 320 },
-            kpis: { rig_type: 'Semisumergible', dayrate: '$485K', contract: '24 meses' }
+            cost: '$120M',
+            progress: 100,
+            position: { x: 100, y: 120 },
+            kpis: { design_reviews: '8 completadas', prototypes: '5', approval: '98%' }
           },
           {
-            id: 'drilling_campaign',
-            name: 'Campaña Perforación',
-            type: 'drilling',
-            status: 'pending',
-            duration: '16 meses',
-            cost: '$890M',
-            progress: 0,
-            position: { x: 400, y: 320 },
-            kpis: { wells_total: '6', avg_duration: '65 días', npt_target: '<8%' }
-          },
-          {
-            id: 'facilities_construction',
-            name: 'Construcción Facilidades',
-            type: 'construction',
-            status: 'pending',
-            duration: '20 meses',
-            cost: '$1,100M',
-            progress: 0,
-            position: { x: 700, y: 320 },
-            kpis: { platform_capacity: '45K BOPD', modules: '12', preassembly: '85%' }
-          },
-          {
-            id: 'commissioning',
-            name: 'Puesta en Marcha',
-            type: 'commissioning',
-            status: 'pending',
-            duration: '6 meses',
-            cost: '$85M',
-            progress: 0,
-            position: { x: 1000, y: 320 },
-            kpis: { systems_tested: '127', efficiency: '94%', safety: '100%' }
-          },
-          {
-            id: 'production_startup',
-            name: 'Producción Comercial',
-            type: 'production',
-            status: 'pending',
-            duration: '8 meses',
-            cost: '$65M',
-            progress: 0,
-            position: { x: 550, y: 520 },
-            kpis: { target_rate: '42K BOPD', plateau: '12 años', opex: '$8.50/BOE' }
-          }
-        ],
-        connections: [
-          { from: 'seismic_acquisition', to: 'geological_interpretation', duration: '2 semanas', progress: 100 },
-          { from: 'geological_interpretation', to: 'environmental_permits', duration: '3 semanas', progress: 100 },
-          { from: 'geological_interpretation', to: 'well_engineering', duration: '2 semanas', progress: 100 },
-          { from: 'environmental_permits', to: 'rig_contracting', duration: '6 semanas', progress: 85 },
-          { from: 'well_engineering', to: 'rig_contracting', duration: '4 semanas', progress: 75 },
-          { from: 'rig_contracting', to: 'drilling_campaign', duration: '8 semanas', progress: 0 },
-          { from: 'well_engineering', to: 'facilities_construction', duration: '12 semanas', progress: 75 },
-          { from: 'drilling_campaign', to: 'commissioning', duration: '6 semanas', progress: 0 },
-          { from: 'facilities_construction', to: 'commissioning', duration: '8 semanas', progress: 0 },
-          { from: 'commissioning', to: 'production_startup', duration: '4 semanas', progress: 0 }
-        ]
-      },
-      midstream: {
-        name: 'Midstream - Transporte y Procesamiento',
-        description: 'Infraestructura para transporte, procesamiento y distribución de gas natural',
-        totalDuration: '24 meses',
-        estimatedCost: '$2.2B',
-        riskScore: 5.8,
-        aiRecommendations: [
-          { type: 'optimization', message: 'Aprovechar corredor existente reduce CAPEX 22%', priority: 'alta' },
-          { type: 'regulatory', message: 'Coordinación con 12 municipios crítica para cronograma', priority: 'alta' },
-          { type: 'technical', message: 'Sistema compresión dual garantiza 99.5% disponibilidad', priority: 'media' },
-          { type: 'environmental', message: 'Técnica HDD minimiza impacto en cruces de ríos', priority: 'media' }
-        ],
-        nodes: [
-          {
-            id: 'route_optimization',
-            name: 'Optimización de Ruta',
-            type: 'planning',
-            status: 'completed',
+            id: 'process_engineering',
+            name: 'Ingeniería de Procesos',
+            type: 'engineering',
+            status: 'running',
             duration: '4 meses',
-            cost: '$45M',
-            progress: 100,
-            position: { x: 100, y: 120 },
-            kpis: { distance: '685 km', crossings: '47', optimization: '18% vs original' }
-          },
-          {
-            id: 'environmental_permits',
-            name: 'Permisos Ambientales',
-            type: 'regulatory',
-            status: 'running',
-            duration: '12 meses',
-            cost: '$85M',
-            progress: 78,
+            cost: '$180M',
+            progress: 75,
             position: { x: 400, y: 120 },
-            kpis: { agencies: '9', approvals: '18/23', hearings: '6 completadas' }
-          },
-          {
-            id: 'right_of_way',
-            name: 'Derecho de Vía',
-            type: 'legal',
-            status: 'running',
-            duration: '16 meses',
-            cost: '$265M',
-            progress: 72,
-            position: { x: 700, y: 120 },
-            kpis: { properties: '1,247', agreements: '897', compensation: '$265M' }
-          },
-          {
-            id: 'pipeline_engineering',
-            name: 'Ingeniería Ductos',
-            type: 'engineering',
-            status: 'running',
-            duration: '8 meses',
-            cost: '$125M',
-            progress: 85,
-            position: { x: 1000, y: 120 },
-            kpis: { diameter: '42"', pressure: '1,440 psi', capacity: '3.2 BCF/d' }
-          },
-          {
-            id: 'compressor_stations',
-            name: 'Estaciones Compresoras',
-            type: 'facilities',
-            status: 'scheduled',
-            duration: '14 meses',
-            cost: '$485M',
-            progress: 0,
-            position: { x: 250, y: 320 },
-            kpis: { stations: '4', power: '180 MW', efficiency: '96%' }
-          },
-          {
-            id: 'pipeline_construction',
-            name: 'Construcción Ducto',
-            type: 'construction',
-            status: 'pending',
-            duration: '18 meses',
-            cost: '$1,100M',
-            progress: 0,
-            position: { x: 550, y: 320 },
-            kpis: { sections: '8', crews: '6', rate: '2.8 km/día' }
-          },
-          {
-            id: 'testing_commissioning',
-            name: 'Pruebas y Puesta en Marcha',
-            type: 'testing',
-            status: 'pending',
-            duration: '6 meses',
-            cost: '$85M',
-            progress: 0,
-            position: { x: 850, y: 320 },
-            kpis: { pressure_test: '1,728 psi', integrity: '100%', systems: '47' }
-          },
-          {
-            id: 'commercial_operation',
-            name: 'Operación Comercial',
-            type: 'operations',
-            status: 'pending',
-            duration: 'Continuo',
-            cost: '$125M/año',
-            progress: 0,
-            position: { x: 550, y: 520 },
-            kpis: { availability: '99.2%', throughput: '3.2 BCF/d', opex: '$0.85/MMBTU' }
-          }
-        ],
-        connections: [
-          { from: 'route_optimization', to: 'environmental_permits', duration: '3 semanas', progress: 100 },
-          { from: 'route_optimization', to: 'right_of_way', duration: '4 semanas', progress: 100 },
-          { from: 'route_optimization', to: 'pipeline_engineering', duration: '2 semanas', progress: 100 },
-          { from: 'pipeline_engineering', to: 'compressor_stations', duration: '6 semanas', progress: 85 },
-          { from: 'environmental_permits', to: 'pipeline_construction', duration: '8 semanas', progress: 78 },
-          { from: 'right_of_way', to: 'pipeline_construction', duration: '4 semanas', progress: 72 },
-          { from: 'compressor_stations', to: 'testing_commissioning', duration: '8 semanas', progress: 0 },
-          { from: 'pipeline_construction', to: 'testing_commissioning', duration: '4 semanas', progress: 0 },
-          { from: 'testing_commissioning', to: 'commercial_operation', duration: '4 semanas', progress: 0 }
-        ]
-      },
-      downstream: {
-        name: 'Downstream - Modernización Refinería',
-        description: 'Modernización integral con nuevas unidades de conversión profunda',
-        totalDuration: '42 meses',
-        estimatedCost: '$3.8B',
-        riskScore: 8.1,
-        aiRecommendations: [
-          { type: 'risk', message: 'Tie-ins durante paradas - ventanas críticas 96 horas máximo', priority: 'crítica' },
-          { type: 'market', message: 'Demanda gasolina premium +15% - optimizar reformado', priority: 'alta' },
-          { type: 'optimization', message: 'Integración energética reduce consumo 18%', priority: 'alta' },
-          { type: 'environmental', message: 'Nuevos sistemas SOx/NOx cumplen estándares 2025', priority: 'media' }
-        ],
-        nodes: [
-          {
-            id: 'process_licensing',
-            name: 'Licenciamiento Tecnología',
-            type: 'licensing',
-            status: 'completed',
-            duration: '8 meses',
-            cost: '$185M',
-            progress: 100,
-            position: { x: 100, y: 120 },
-            kpis: { licenses: '5 tecnologías', licensors: 'UOP, Shell', guarantees: '98%' }
-          },
-          {
-            id: 'detailed_engineering',
-            name: 'Ingeniería Detallada',
-            type: 'engineering',
-            status: 'running',
-            duration: '16 meses',
-            cost: '$385M',
-            progress: 68,
-            position: { x: 400, y: 120 },
-            kpis: { drawings: '12,847', '3d_model': '89%', isometrics: '7,245' }
+            kpis: { process_maps: '12', efficiency: '87%', validation: 'En proceso' }
           },
           {
             id: 'equipment_procurement',
-            name: 'Procura Equipos',
+            name: 'Adquisición Equipos',
             type: 'procurement',
-            status: 'running',
-            duration: '20 meses',
-            cost: '$1,650M',
-            progress: 45,
+            status: 'scheduled',
+            duration: '6 meses',
+            cost: '$450M',
+            progress: 0,
             position: { x: 700, y: 120 },
-            kpis: { major_equipment: '89', reactors: '6', delivery: '18 meses' }
+            kpis: { suppliers: '24 evaluados', quotes: '156', lead_time: '16 semanas' }
           },
           {
-            id: 'environmental_upgrades',
-            name: 'Mejoras Ambientales',
-            type: 'environmental',
-            status: 'scheduled',
-            duration: '12 meses',
-            cost: '$295M',
-            progress: 0,
-            position: { x: 1000, y: 120 },
-            kpis: { sox_removal: '99.8%', nox_reduction: '85%', efficiency: '94%' }
-          },
-          {
-            id: 'site_preparation',
-            name: 'Preparación Sitio',
+            id: 'facility_setup',
+            name: 'Configuración Instalaciones',
             type: 'construction',
-            status: 'scheduled',
-            duration: '10 meses',
-            cost: '$265M',
-            progress: 0,
-            position: { x: 250, y: 320 },
-            kpis: { area: '125 hectáreas', foundations: '847', tie_ins: '156' }
-          },
-          {
-            id: 'unit_construction',
-            name: 'Construcción Unidades',
-            type: 'construction',
-            status: 'pending',
-            duration: '24 meses',
-            cost: '$1,450M',
-            progress: 0,
-            position: { x: 550, y: 320 },
-            kpis: { process_units: '6', piping: '185 km', structures: '95' }
-          },
-          {
-            id: 'control_systems',
-            name: 'Sistemas Control',
-            type: 'automation',
-            status: 'pending',
-            duration: '10 meses',
-            cost: '$245M',
-            progress: 0,
-            position: { x: 850, y: 320 },
-            kpis: { control_loops: '3,567', dcs: '100%', cybersecurity: 'IEC 62443' }
-          },
-          {
-            id: 'commissioning',
-            name: 'Puesta en Marcha',
-            type: 'commissioning',
             status: 'pending',
             duration: '8 meses',
-            cost: '$185M',
+            cost: '$680M',
             progress: 0,
-            position: { x: 400, y: 520 },
-            kpis: { units_started: '6', performance: '156 tests', specs: '100%' }
+            position: { x: 100, y: 320 },
+            kpis: { space: '15,000 m²', utilities: '95% ready', safety: '100% compliance' }
           },
           {
-            id: 'commercial_production',
-            name: 'Producción Comercial',
+            id: 'production_start',
+            name: 'Inicio de Producción',
             type: 'production',
             status: 'pending',
-            duration: 'Continuo',
-            cost: '$185M/año',
+            duration: '2 meses',
+            cost: '$85M',
             progress: 0,
-            position: { x: 700, y: 520 },
-            kpis: { capacity: '250K BPD', utilization: '92%', margin: '$8.50/bbl' }
+            position: { x: 400, y: 320 },
+            kpis: { capacity: '1,000 units/day', quality: '99.2%', oee: '85%' }
+          },
+          {
+            id: 'quality_control',
+            name: 'Control de Calidad',
+            type: 'testing',
+            status: 'pending',
+            duration: 'Continuo',
+            cost: '$45M/año',
+            progress: 0,
+            position: { x: 700, y: 320 },
+            kpis: { defect_rate: '<0.1%', inspections: '100%', certifications: 'ISO 9001' }
           }
         ],
         connections: [
-          { from: 'process_licensing', to: 'detailed_engineering', duration: '4 semanas', progress: 100 },
-          { from: 'detailed_engineering', to: 'equipment_procurement', duration: '6 semanas', progress: 68 },
-          { from: 'detailed_engineering', to: 'environmental_upgrades', duration: '8 semanas', progress: 68 },
-          { from: 'equipment_procurement', to: 'site_preparation', duration: '12 semanas', progress: 45 },
-          { from: 'site_preparation', to: 'unit_construction', duration: '8 semanas', progress: 0 },
-          { from: 'equipment_procurement', to: 'unit_construction', duration: '16 semanas', progress: 45 },
-          { from: 'unit_construction', to: 'control_systems', duration: '12 semanas', progress: 0 },
-          { from: 'control_systems', to: 'commissioning', duration: '6 semanas', progress: 0 },
-          { from: 'environmental_upgrades', to: 'commissioning', duration: '4 semanas', progress: 0 },
-          { from: 'commissioning', to: 'commercial_production', duration: '6 semanas', progress: 0 }
+          { from: 'product_design', to: 'process_engineering', duration: '2 semanas', progress: 100 },
+          { from: 'process_engineering', to: 'equipment_procurement', duration: '3 semanas', progress: 75 },
+          { from: 'equipment_procurement', to: 'facility_setup', duration: '4 semanas', progress: 0 },
+          { from: 'facility_setup', to: 'production_start', duration: '2 semanas', progress: 0 },
+          { from: 'production_start', to: 'quality_control', duration: '1 semana', progress: 0 },
+          { from: 'process_engineering', to: 'facility_setup', duration: '6 semanas', progress: 75 }
+        ]
+      },
+      logistics: {
+        name: 'Logística - Optimización de Cadena de Suministro',
+        description: 'Gestión integral de almacenes, transporte y distribución',
+        totalDuration: '14 meses',
+        estimatedCost: '$950M',
+        riskScore: 4.8,
+        aiRecommendations: [
+          { type: 'optimization', message: 'Algoritmos de ruteo reducen costos transporte 22%', priority: 'alta' },
+          { type: 'technology', message: 'RFID y IoT mejoran visibilidad inventario 95%', priority: 'alta' },
+          { type: 'sustainability', message: 'Optimización rutas reduce huella carbono 30%', priority: 'media' },
+          { type: 'partnership', message: 'Alianzas estratégicas expanden cobertura', priority: 'media' }
+        ],
+        nodes: [
+          {
+            id: 'demand_planning',
+            name: 'Planificación Demanda',
+            type: 'planning',
+            status: 'completed',
+            duration: '2 meses',
+            cost: '$65M',
+            progress: 100,
+            position: { x: 100, y: 120 },
+            kpis: { accuracy: '94%', forecasts: '365 días', models: '12 algoritmos' }
+          },
+          {
+            id: 'warehouse_design',
+            name: 'Diseño de Almacenes',
+            type: 'design',
+            status: 'running',
+            duration: '4 meses',
+            cost: '$180M',
+            progress: 68,
+            position: { x: 400, y: 120 },
+            kpis: { capacity: '50,000 m²', automation: '75%', throughput: '10,000 orders/día' }
+          },
+          {
+            id: 'transport_network',
+            name: 'Red de Transporte',
+            type: 'network',
+            status: 'scheduled',
+            duration: '6 meses',
+            cost: '$320M',
+            progress: 0,
+            position: { x: 700, y: 120 },
+            kpis: { routes: '450', vehicles: '1,200', coverage: '98% territorio' }
+          },
+          {
+            id: 'technology_deployment',
+            name: 'Despliegue Tecnológico',
+            type: 'technology',
+            status: 'pending',
+            duration: '5 meses',
+            cost: '$140M',
+            progress: 0,
+            position: { x: 250, y: 320 },
+            kpis: { systems: 'WMS, TMS, OMS', integration: '99.5%', uptime: '99.9%' }
+          },
+          {
+            id: 'operations_launch',
+            name: 'Lanzamiento Operacional',
+            type: 'operations',
+            status: 'pending',
+            duration: '3 meses',
+            cost: '$95M',
+            progress: 0,
+            position: { x: 550, y: 320 },
+            kpis: { sla: '99.5%', cost_per_order: '$2.50', delivery_time: '24h' }
+          }
+        ],
+        connections: [
+          { from: 'demand_planning', to: 'warehouse_design', duration: '2 semanas', progress: 100 },
+          { from: 'warehouse_design', to: 'transport_network', duration: '3 semanas', progress: 68 },
+          { from: 'warehouse_design', to: 'technology_deployment', duration: '4 semanas', progress: 68 },
+          { from: 'transport_network', to: 'operations_launch', duration: '4 semanas', progress: 0 },
+          { from: 'technology_deployment', to: 'operations_launch', duration: '2 semanas', progress: 0 }
+        ]
+      },
+      infrastructure: {
+        name: 'Infraestructura - Desarrollo de Proyecto',
+        description: 'Construcción y desarrollo de infraestructura crítica',
+        totalDuration: '36 meses',
+        estimatedCost: '$3.2B',
+        riskScore: 7.9,
+        aiRecommendations: [
+          { type: 'risk', message: 'Condiciones climáticas críticas - planificar ventanas', priority: 'crítica' },
+          { type: 'optimization', message: 'BIM 4D optimiza secuencia constructiva 20%', priority: 'alta' },
+          { type: 'sustainability', message: 'Materiales sostenibles cumplen normativas 2025', priority: 'alta' },
+          { type: 'innovation', message: 'Construcción modular reduce timeline 15%', priority: 'media' }
+        ],
+        nodes: [
+          {
+            id: 'feasibility_study',
+            name: 'Estudio de Factibilidad',
+            type: 'analysis',
+            status: 'completed',
+            duration: '6 meses',
+            cost: '$85M',
+            progress: 100,
+            position: { x: 100, y: 120 },
+            kpis: { studies: '8 completados', viability: '95%', roi: '18.5%' }
+          },
+          {
+            id: 'design_engineering',
+            name: 'Diseño e Ingeniería',
+            type: 'engineering',
+            status: 'running',
+            duration: '12 meses',
+            cost: '$340M',
+            progress: 58,
+            position: { x: 400, y: 120 },
+            kpis: { drawings: '2,500', bim_models: '100%', approvals: '85%' }
+          },
+          {
+            id: 'permits_licensing',
+            name: 'Permisos y Licencias',
+            type: 'regulatory',
+            status: 'running',
+            duration: '18 meses',
+            cost: '$125M',
+            progress: 42,
+            position: { x: 700, y: 120 },
+            kpis: { permits: '45/67', agencies: '12', compliance: '100%' }
+          },
+          {
+            id: 'site_preparation',
+            name: 'Preparación del Sitio',
+            type: 'construction',
+            status: 'scheduled',
+            duration: '8 meses',
+            cost: '$280M',
+            progress: 0,
+            position: { x: 100, y: 320 },
+            kpis: { area: '250 hectáreas', earthwork: '2.5M m³', utilities: '85 km' }
+          },
+          {
+            id: 'main_construction',
+            name: 'Construcción Principal',
+            type: 'construction',
+            status: 'pending',
+            duration: '24 meses',
+            cost: '$1,800M',
+            progress: 0,
+            position: { x: 400, y: 320 },
+            kpis: { structures: '15', concrete: '45,000 m³', steel: '12,000 tons' }
+          },
+          {
+            id: 'commissioning',
+            name: 'Puesta en Servicio',
+            type: 'commissioning',
+            status: 'pending',
+            duration: '6 meses',
+            cost: '$185M',
+            progress: 0,
+            position: { x: 700, y: 320 },
+            kpis: { systems: '156', tests: '2,400', performance: '98%' }
+          }
+        ],
+        connections: [
+          { from: 'feasibility_study', to: 'design_engineering', duration: '3 semanas', progress: 100 },
+          { from: 'feasibility_study', to: 'permits_licensing', duration: '2 semanas', progress: 100 },
+          { from: 'design_engineering', to: 'site_preparation', duration: '8 semanas', progress: 58 },
+          { from: 'permits_licensing', to: 'site_preparation', duration: '4 semanas', progress: 42 },
+          { from: 'site_preparation', to: 'main_construction', duration: '6 semanas', progress: 0 },
+          { from: 'main_construction', to: 'commissioning', duration: '8 semanas', progress: 0 }
         ]
       }
     };
 
-    return workflows[operationType] || workflows.upstream;
+    return workflows[operationType] || workflows.manufacturing;
   }, []);
 
   // Datos iniciales de proyectos
   const [projects, setProjects] = useState([
     {
       id: 1,
-      name: "Complejo Águila Dorada - GoM",
-      operationType: 'upstream',
+      name: "Línea de Producción Automatizada",
+      operationType: 'manufacturing',
       fileType: 'google-sheets',
       googleSheetsUrl: 'https://docs.google.com/spreadsheets/d/1A2B3C4D5E6F7G8H9/edit',
       status: 'active',
       realTimeUpdates: true,
       createdAt: '2024-01-10T08:00:00Z',
       lastModified: '2024-01-15T14:30:00Z',
-      budget: '$2.8B',
+      budget: '$1.8B',
       completion: 67,
       team: 145,
-      location: 'Golfo de México',
-      nextMilestone: 'Perforación Pozo AG-003',
+      location: 'Planta Norte',
+      nextMilestone: 'Instalación Equipos Línea 3',
       nextMilestoneDate: '2024-02-15',
       riskLevel: 'medium',
       workflow: null,
       data: {
         schema: [
           { field: 'timestamp', type: 'datetime', sample: '2024-01-15 08:30:00' },
-          { field: 'well_id', type: 'string', sample: 'PZ-Norte-001' },
-          { field: 'oil_rate_bopd', type: 'number', sample: 2847.5 }
+          { field: 'line_id', type: 'string', sample: 'LINE-001' },
+          { field: 'production_rate', type: 'number', sample: 847.5 },
+          { field: 'quality_score', type: 'number', sample: 98.2 },
+          { field: 'efficiency', type: 'percentage', sample: 87.5 },
+          { field: 'downtime_minutes', type: 'number', sample: 15 }
         ],
         records: [
           {
             timestamp: '2024-01-15 08:30:00',
-            well_id: 'PZ-Norte-001',
-            oil_rate_bopd: 2847.5
+            line_id: 'LINE-001',
+            production_rate: 847.5,
+            quality_score: 98.2,
+            efficiency: 87.5,
+            downtime_minutes: 15
           }
         ]
       }
     },
     {
       id: 2,
-      name: "Terminal Los Andes Hub",
-      operationType: 'midstream',
+      name: "Centro de Distribución Regional",
+      operationType: 'logistics',
       fileType: 'excel',
       status: 'active',
       realTimeUpdates: false,
       createdAt: '2024-01-08T10:00:00Z',
       lastModified: '2024-01-15T16:20:00Z',
-      budget: '$1.2B',
+      budget: '$950M',
       completion: 89,
       team: 78,
-      location: 'Venezuela',
-      nextMilestone: 'Pruebas de Integridad',
+      location: 'Zona Industrial Sur',
+      nextMilestone: 'Pruebas Sistema WMS',
       nextMilestoneDate: '2024-02-01',
       riskLevel: 'low',
       workflow: null,
@@ -477,24 +381,24 @@ const GestionProyectos = () => {
   // Función para obtener información de tipo de operación
   const getOperationTypeInfo = useCallback((type) => {
     const types = {
-      upstream: {
-        name: 'Upstream',
-        description: 'Exploración y Producción',
-        icon: <Droplets size={18} />,
+      manufacturing: {
+        name: 'Manufactura',
+        description: 'Procesos de Producción',
+        icon: <Factory size={18} />,
         color: '#3b82f6',
         bgColor: '#dbeafe'
       },
-      midstream: {
-        name: 'Midstream', 
-        description: 'Transporte y Procesamiento',
-        icon: <Zap size={18} />,
+      logistics: {
+        name: 'Logística', 
+        description: 'Cadena de Suministro',
+        icon: <Truck size={18} />,
         color: '#f59e0b',
         bgColor: '#fef3c7'
       },
-      downstream: {
-        name: 'Downstream',
-        description: 'Refinación y Productos',
-        icon: <Activity size={18} />,
+      infrastructure: {
+        name: 'Infraestructura',
+        description: 'Construcción y Desarrollo',
+        icon: <Building2 size={18} />,
         color: '#10b981',
         bgColor: '#dcfce7'
       }
@@ -507,43 +411,55 @@ const GestionProyectos = () => {
     setProjects(prevProjects => 
       prevProjects.map(project => ({
         ...project,
-        workflow: getPetroleumWorkflows(project.operationType, project.name)
+        workflow: getGenericWorkflows(project.operationType, project.name)
       }))
     );
-  }, [getPetroleumWorkflows]);
+  }, [getGenericWorkflows]);
 
   // Datos simulados para proyectos
   const getSimulatedData = useCallback((operationType, projectName) => {
     const baseSchemas = {
-      upstream: [
+      manufacturing: [
         { field: 'timestamp', type: 'datetime', sample: '2024-01-15 08:30:00' },
-        { field: 'well_id', type: 'string', sample: 'PZ-Norte-001' },
-        { field: 'oil_rate_bopd', type: 'number', sample: 2847.5 },
-        { field: 'gas_rate_mscfd', type: 'number', sample: 1284.2 },
-        { field: 'water_rate_bwpd', type: 'number', sample: 425.8 },
-        { field: 'wellhead_pressure_psi', type: 'number', sample: 3250.0 }
+        { field: 'line_id', type: 'string', sample: 'LINE-001' },
+        { field: 'production_rate', type: 'number', sample: 847.5 },
+        { field: 'quality_score', type: 'number', sample: 98.2 },
+        { field: 'efficiency', type: 'percentage', sample: 87.5 },
+        { field: 'downtime_minutes', type: 'number', sample: 15 }
+      ],
+      logistics: [
+        { field: 'timestamp', type: 'datetime', sample: '2024-01-15 08:30:00' },
+        { field: 'warehouse_id', type: 'string', sample: 'WH-001' },
+        { field: 'orders_processed', type: 'number', sample: 1250 },
+        { field: 'fulfillment_rate', type: 'percentage', sample: 99.2 },
+        { field: 'avg_pick_time', type: 'number', sample: 45.2 },
+        { field: 'inventory_accuracy', type: 'percentage', sample: 99.8 }
+      ],
+      infrastructure: [
+        { field: 'timestamp', type: 'datetime', sample: '2024-01-15 08:30:00' },
+        { field: 'project_phase', type: 'string', sample: 'Construction' },
+        { field: 'completion_percentage', type: 'percentage', sample: 67.5 },
+        { field: 'budget_used', type: 'currency', sample: 2100000 },
+        { field: 'safety_incidents', type: 'number', sample: 0 },
+        { field: 'quality_index', type: 'percentage', sample: 96.8 }
       ]
     };
 
     return {
       filename: `${operationType}_data_${Date.now()}.xlsx`,
-      sheets: [`${operationType.charAt(0).toUpperCase() + operationType.slice(1)}_Operations`, 'KPIs', 'Alarms'],
-      schema: baseSchemas[operationType] || baseSchemas.upstream,
+      sheets: [`${operationType.charAt(0).toUpperCase() + operationType.slice(1)}_Operations`, 'KPIs', 'Alerts'],
+      schema: baseSchemas[operationType] || baseSchemas.manufacturing,
       records: [
-        {
-          timestamp: '2024-01-15 08:30:00',
-          well_id: 'PZ-Norte-001',
-          oil_rate_bopd: 2847.5,
-          gas_rate_mscfd: 1284.2,
-          water_rate_bwpd: 425.8,
-          wellhead_pressure_psi: 3250.0
-        }
+        baseSchemas[operationType] ? baseSchemas[operationType].reduce((acc, field) => {
+          acc[field.field] = field.sample;
+          return acc;
+        }, {}) : {}
       ],
-      workflow: getPetroleumWorkflows(operationType, projectName)
+      workflow: getGenericWorkflows(operationType, projectName)
     };
-  }, [getPetroleumWorkflows]);
+  }, [getGenericWorkflows]);
 
-  // Manejadores de archivos con useCallback para estabilidad
+  // Manejadores de archivos
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setDragOver(true);
@@ -583,8 +499,8 @@ const GestionProyectos = () => {
       setProjectData(simulatedData);
       setProjectWorkflow(simulatedData.workflow);
       setProcessing(false);
-      setNewProjectStep(3);
-    }, 3000);
+      setShowDataEditor(true); // Mostrar editor de datos después del procesamiento
+    }, 2000);
   }, [operationType, projectName, getSimulatedData]);
 
   const processGoogleSheets = useCallback((url) => {
@@ -596,8 +512,8 @@ const GestionProyectos = () => {
       setProjectData(simulatedData);
       setProjectWorkflow(simulatedData.workflow);
       setProcessing(false);
-      setNewProjectStep(3);
-    }, 2500);
+      setShowDataEditor(true); // Mostrar editor de datos después del procesamiento
+    }, 1500);
   }, [operationType, projectName, getSimulatedData]);
 
   const createProject = useCallback(() => {
@@ -614,11 +530,11 @@ const GestionProyectos = () => {
       lastModified: new Date().toISOString(),
       status: 'active',
       realTimeUpdates: globalConfig.defaultFileFormat === 'google-sheets',
-      budget: operationType === 'upstream' ? '$2.5B' : 
-              operationType === 'midstream' ? '$1.2B' : '$3.1B',
+      budget: operationType === 'manufacturing' ? '$1.8B' : 
+              operationType === 'logistics' ? '$950M' : '$3.2B',
       completion: Math.floor(Math.random() * 30) + 10,
       team: Math.floor(Math.random() * 100) + 50,
-      location: 'Nuevo Campo',
+      location: 'Nueva Ubicación',
       nextMilestone: 'Fase Inicial',
       nextMilestoneDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
@@ -628,7 +544,7 @@ const GestionProyectos = () => {
     
     // Reset form states
     setProjectName('');
-    setOperationType('upstream');
+    setOperationType('manufacturing');
     setGoogleSheetsUrl('');
     setProjectFile(null);
     setProjectData(null);
@@ -640,7 +556,7 @@ const GestionProyectos = () => {
     projectData, projectWorkflow, globalConfig.defaultFileFormat
   ]);
 
-  // Navegación estable con useCallback
+  // Navegación
   const handleNewProject = useCallback(() => setCurrentView('newProject'), []);
   const handleBackToList = useCallback(() => setCurrentView('projectList'), []);
   const handleViewData = useCallback((project) => {
@@ -655,6 +571,15 @@ const GestionProyectos = () => {
     setSelectedProject(project);
     setCurrentView('editProject');
   }, []);
+
+  // Manejadores de modales
+  const handleDataEditorSave = (data) => {
+    setProjectData(data);
+    setShowDataEditor(false);
+    if (newProjectStep === 2) {
+      setNewProjectStep(3); // Continuar con el workflow después de editar datos
+    }
+  };
 
   // Componente para paso 2 del nuevo proyecto
   const NewProjectStep2 = () => (
@@ -758,38 +683,6 @@ const GestionProyectos = () => {
           box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
         }
 
-        .step-navigation {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 32px;
-        }
-
-        .btn {
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border: none;
-        }
-
-        .btn-secondary {
-          background: white;
-          color: #6b7684;
-          border: 1px solid #e5e8eb;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .btn-secondary:hover {
-          background: #f8f9fa;
-          border-color: #d0d5db;
-          transform: translateY(-1px);
-        }
-
         .processing-spinner {
           animation: spin 1s linear infinite;
         }
@@ -835,7 +728,7 @@ const GestionProyectos = () => {
                 Arrastra tu archivo Excel aquí
               </h3>
               <p className="upload-subtitle">
-                Carga datos de producción, costos y cronogramas para crear tu digital twin petrolero
+                Carga datos operacionales para crear tu digital twin
               </p>
               <button className="upload-btn" type="button">
                 <Upload size={16} />
@@ -852,157 +745,6 @@ const GestionProyectos = () => {
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />
-
-        <div className="step-navigation">
-          <button className="btn btn-secondary" onClick={() => setNewProjectStep(1)} type="button">
-            <ArrowLeft size={16} />
-            Anterior
-          </button>
-          <div></div>
-        </div>
-      </div>
-    </>
-  );
-
-  // Componente para paso 3 del nuevo proyecto
-  const NewProjectStep3 = () => (
-    <>
-      <style jsx>{`
-        .data-preview-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 0 20px;
-        }
-
-        .step-header {
-          margin-bottom: 32px;
-        }
-
-        .back-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 0;
-          color: #6b7684;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 14px;
-          margin-bottom: 16px;
-          transition: color 0.2s ease;
-        }
-
-        .back-btn:hover {
-          color: #1a1d21;
-        }
-
-        .step-title {
-          font-size: 24px;
-          font-weight: 600;
-          color: #1a1d21;
-          margin: 0 0 4px 0;
-        }
-
-        .step-subtitle {
-          font-size: 14px;
-          color: #6b7684;
-          margin: 0;
-        }
-
-        .data-summary {
-          background: white;
-          border: 1px solid #e5e8eb;
-          border-radius: 16px;
-          padding: 32px;
-          margin-bottom: 32px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .summary-title {
-          font-size: 24px;
-          font-weight: 700;
-          color: #1a1d21;
-          margin: 0 0 24px 0;
-        }
-
-        .step-navigation {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 32px;
-        }
-
-        .btn {
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border: none;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #3b82f6, #2563eb);
-          color: white;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-          background: white;
-          color: #6b7684;
-          border: 1px solid #e5e8eb;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .btn-secondary:hover {
-          background: #f8f9fa;
-          border-color: #d0d5db;
-          transform: translateY(-1px);
-        }
-      `}</style>
-
-      <div className="data-preview-container">
-        <div className="step-header">
-          <button 
-            className="back-btn"
-            onClick={() => setNewProjectStep(2)}
-            type="button"
-          >
-            <ArrowLeft size={16} />
-            Volver
-          </button>
-          <h1 className="step-title">Datos Analizados</h1>
-          <p className="step-subtitle">Validación del esquema y estructura de datos petroleros</p>
-        </div>
-
-        {projectData && (
-          <>
-            <div className="data-summary">
-              <h2 className="summary-title">Análisis del Dataset Petrolero Completado</h2>
-              <p>Se han detectado {projectData.schema.length} campos de datos y {projectData.records.length} registros históricos.</p>
-              <p>El workflow personalizado para {getOperationTypeInfo(operationType).name} está listo para ser generado.</p>
-            </div>
-
-            <div className="step-navigation">
-              <button className="btn btn-secondary" onClick={() => setNewProjectStep(2)} type="button">
-                <ArrowLeft size={16} />
-                Anterior
-              </button>
-              <button className="btn btn-primary" onClick={() => setNewProjectStep(4)} type="button">
-                Generar Digital Twin
-                <ArrowRight size={16} />
-              </button>
-            </div>
-          </>
-        )}
       </div>
     </>
   );
@@ -1036,15 +778,13 @@ const GestionProyectos = () => {
         } else if (newProjectStep === 2) {
           return <NewProjectStep2 />;
         } else if (newProjectStep === 3) {
-          return <NewProjectStep3 />;
-        } else if (newProjectStep === 4) {
           return projectWorkflow ? (
             <>
               <WorkflowCanvas 
                 workflow={projectWorkflow}
                 selectedNode={selectedNode}
                 onNodeSelect={setSelectedNode}
-                onBack={() => setNewProjectStep(3)}
+                onBack={() => setNewProjectStep(2)}
                 draggingNode={draggingNode}
                 setDraggingNode={setDraggingNode}
                 dragOffset={dragOffset}
@@ -1062,7 +802,7 @@ const GestionProyectos = () => {
               }}>
                 <button 
                   className="btn btn-secondary"
-                  onClick={() => setNewProjectStep(3)}
+                  onClick={() => setNewProjectStep(2)}
                   style={{ padding: '16px 24px', borderRadius: '12px' }}
                   type="button"
                 >
@@ -1083,6 +823,18 @@ const GestionProyectos = () => {
                   <CheckCircle size={16} />
                   Activar Digital Twin
                 </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowKPIManager(true)}
+                  style={{ 
+                    padding: '16px 24px', 
+                    borderRadius: '12px'
+                  }}
+                  type="button"
+                >
+                  <Target size={16} />
+                  Gestionar KPIs
+                </button>
               </div>
             </>
           ) : null;
@@ -1100,16 +852,53 @@ const GestionProyectos = () => {
 
       case 'projectWorkflow':
         return selectedProject?.workflow ? (
-          <WorkflowCanvas 
-            workflow={selectedProject.workflow}
-            selectedNode={selectedNode}
-            onNodeSelect={setSelectedNode}
-            onBack={handleBackToList}
-            draggingNode={draggingNode}
-            setDraggingNode={setDraggingNode}
-            dragOffset={dragOffset}
-            setDragOffset={setDragOffset}
-          />
+          <>
+            <WorkflowCanvas 
+              workflow={selectedProject.workflow}
+              selectedNode={selectedNode}
+              onNodeSelect={setSelectedNode}
+              onBack={handleBackToList}
+              draggingNode={draggingNode}
+              setDraggingNode={setDraggingNode}
+              dragOffset={dragOffset}
+              setDragOffset={setDragOffset}
+            />
+            
+            {/* Botones flotantes para proyecto existente */}
+            <div style={{
+              position: 'fixed',
+              bottom: '30px',
+              right: '30px',
+              display: 'flex',
+              gap: '16px',
+              zIndex: 60
+            }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowStatistics(true)}
+                style={{ 
+                  padding: '16px 24px', 
+                  borderRadius: '12px'
+                }}
+                type="button"
+              >
+                <BarChart3 size={16} />
+                Estadísticas
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowKPIManager(true)}
+                style={{ 
+                  padding: '16px 24px', 
+                  borderRadius: '12px'
+                }}
+                type="button"
+              >
+                <Target size={16} />
+                KPIs
+              </button>
+            </div>
+          </>
         ) : null;
 
       case 'editProject':
@@ -1134,7 +923,77 @@ const GestionProyectos = () => {
     }
   };
 
-  return renderContent();
+  return (
+    <>
+      <style jsx>{`
+        .btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: none;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          color: white;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+          background: white;
+          color: #6b7684;
+          border: 1px solid #e5e8eb;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-secondary:hover {
+          background: #f8f9fa;
+          border-color: #d0d5db;
+          transform: translateY(-1px);
+        }
+      `}</style>
+
+      {/* Contenido principal */}
+      {renderContent()}
+
+      {/* Editor de Datos */}
+      {showDataEditor && projectData && (
+        <DataSourceEditor
+          initialData={projectData}
+          onSave={handleDataEditorSave}
+          onCancel={() => setShowDataEditor(false)}
+        />
+      )}
+
+      {/* Panel de Estadísticas */}
+      <StatisticsPanel 
+        projectData={selectedProject?.data}
+        workflow={selectedProject?.workflow}
+        isVisible={showStatistics}
+        onClose={() => setShowStatistics(false)}
+      />
+
+      {/* Gestor de KPIs */}
+      {showKPIManager && (
+        <KPIManager 
+          workflow={projectWorkflow || selectedProject?.workflow}
+          onSave={() => setShowKPIManager(false)}
+          onClose={() => setShowKPIManager(false)}
+        />
+      )}
+    </>
+  );
 };
 
 export default GestionProyectos;

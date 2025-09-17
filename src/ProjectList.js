@@ -1,31 +1,31 @@
 import React from 'react';
 import { 
   Plus, Download, BarChart3, MapPin, Database, Workflow, Settings,
-  Droplets, Zap, Activity
+  Factory, Truck, Building2
 } from 'lucide-react';
 
 const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, onViewData, onViewWorkflow }) => {
   
   const getOperationTypeInfo = (type) => {
     const types = {
-      upstream: {
-        name: 'Upstream',
-        description: 'Exploración y Producción',
-        icon: <Droplets size={18} />,
+      manufacturing: {
+        name: 'Manufactura',
+        description: 'Procesos de Producción',
+        icon: <Factory size={18} />,
         color: '#3b82f6',
         bgColor: '#dbeafe'
       },
-      midstream: {
-        name: 'Midstream', 
-        description: 'Transporte y Procesamiento',
-        icon: <Zap size={18} />,
+      logistics: {
+        name: 'Logística', 
+        description: 'Cadena de Suministro',
+        icon: <Truck size={18} />,
         color: '#f59e0b',
         bgColor: '#fef3c7'
       },
-      downstream: {
-        name: 'Downstream',
-        description: 'Refinación y Productos',
-        icon: <Activity size={18} />,
+      infrastructure: {
+        name: 'Infraestructura',
+        description: 'Construcción y Desarrollo',
+        icon: <Building2 size={18} />,
         color: '#10b981',
         bgColor: '#dcfce7'
       }
@@ -415,9 +415,9 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
       <div className="projects-container">
         <div className="projects-header">
           <div className="header-left">
-            <h1>Digital Twin Petrolero</h1>
+            <h1>Digital Twin Platform</h1>
             <p className="header-subtitle">
-              Gestión integral de proyectos upstream, midstream y downstream
+              Gestión integral de proyectos con gemelos digitales avanzados
             </p>
             <div className="header-stats">
               <div className="stat-card">
@@ -472,9 +472,9 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
             <label className="filter-label">Tipo de Operación</label>
             <select className="filter-select">
               <option value="">Todos</option>
-              <option value="upstream">Upstream</option>
-              <option value="midstream">Midstream</option>
-              <option value="downstream">Downstream</option>
+              <option value="manufacturing">Manufactura</option>
+              <option value="logistics">Logística</option>
+              <option value="infrastructure">Infraestructura</option>
             </select>
           </div>
           <div className="filter-group">
@@ -499,9 +499,9 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
             <label className="filter-label">Ubicación</label>
             <select className="filter-select">
               <option value="">Todas</option>
-              <option value="gom">Golfo de México</option>
-              <option value="venezuela">Venezuela</option>
-              <option value="pacific">Costa del Pacífico</option>
+              <option value="north">Zona Norte</option>
+              <option value="south">Zona Sur</option>
+              <option value="central">Zona Central</option>
             </select>
           </div>
         </div>
@@ -552,7 +552,7 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
                   </div>
                   <div className="metric-card">
                     <h4>{project.workflow?.nodes?.length || 0}</h4>
-                    <p>Tareas</p>
+                    <p>Procesos</p>
                   </div>
                 </div>
 
