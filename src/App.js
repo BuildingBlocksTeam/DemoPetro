@@ -35,12 +35,6 @@ const DTApp = () => {
       notifications: 2
     },
     { 
-      id: 'data', 
-      label: 'Fuentes de Datos', 
-      icon: Database,
-      notifications: 0
-    },
-    { 
       id: 'configuration', 
       label: 'Configuración', 
       icon: Settings,
