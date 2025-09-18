@@ -2017,35 +2017,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                 </button>
               </div>
             </div>
-            
-            <div className="canvas-stats">
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">{workflowNodes?.length || 0}</div>
-                <div className="canvas-stat-label">Nodos Totales</div>
-              </div>
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">{workflowConnections?.length || 0}</div>
-                <div className="canvas-stat-label">Conexiones</div>
-              </div>
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">
-                  {Math.round((workflowNodes?.reduce((acc, node) => acc + node.progress, 0) || 0) / (workflowNodes?.length || 1))}%
-                </div>
-                <div className="canvas-stat-label">Progreso Global</div>
-              </div>
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">{workflowData.budget}</div>
-                <div className="canvas-stat-label">Presupuesto</div>
-              </div>
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">{workflowData.timeline}</div>
-                <div className="canvas-stat-label">Duración Est.</div>
-              </div>
-              <div className="canvas-stat">
-                <div className="canvas-stat-value">{workflowData.status}</div>
-                <div className="canvas-stat-label">Estado Actual</div>
-              </div>
-            </div>
           </div>
 
           <div className="canvas-area">
