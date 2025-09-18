@@ -452,10 +452,6 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
               <Download size={16} />
               Exportar Dashboard
             </button>
-            <button className="btn btn-secondary" type="button">
-              <BarChart3 size={16} />
-              Analytics
-            </button>
             <button 
               className="btn btn-primary"
               onClick={onNewProject}
