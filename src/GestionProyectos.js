@@ -863,41 +863,7 @@ const GestionProyectos = () => {
               dragOffset={dragOffset}
               setDragOffset={setDragOffset}
             />
-            
-            {/* Botones flotantes para proyecto existente */}
-            <div style={{
-              position: 'fixed',
-              bottom: '30px',
-              right: '30px',
-              display: 'flex',
-              gap: '16px',
-              zIndex: 60
-            }}>
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => setShowStatistics(true)}
-                style={{ 
-                  padding: '16px 24px', 
-                  borderRadius: '12px'
-                }}
-                type="button"
-              >
-                <BarChart3 size={16} />
-                Estadísticas
-              </button>
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => setShowKPIManager(true)}
-                style={{ 
-                  padding: '16px 24px', 
-                  borderRadius: '12px'
-                }}
-                type="button"
-              >
-                <Target size={16} />
-                KPIs
-              </button>
-            </div>
+          
           </>
         ) : null;
 
