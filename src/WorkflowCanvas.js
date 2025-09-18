@@ -18,6 +18,9 @@ import {
   Tooltip, Legend, ResponsiveContainer, Pie
 } from 'recharts';
 
+ import AIChat from './AIChat';
+ import DataSourceEditor from './DataSourceEditor';
+
 const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, draggingNode, setDraggingNode, dragOffset, setDragOffset }) => {
   // Estados del canvas (existentes)
   const [canvasScale, setCanvasScale] = useState(1);
@@ -2402,6 +2405,30 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         <ArrowLeft size={16} />
         Volver al Dashboard
       </button>
+
+      {/* AI Chat Component - AGREGAR AQUÍ */}
+      <AIChat 
+        workflow={workflowData}
+        isMinimized={aiChatMinimized}
+        onToggleMinimize={() => setAiChatMinimized(!aiChatMinimized)}
+        onClose={() => setAiChatMinimized(true)}
+      />
+
+      {showDataSourceEditor && (
+        <div className="modal-overlay">
+          <DataSourceEditor 
+            initialData={{ 
+              schema: defaultDataSources[0]?.schema || [],
+              dataSources: defaultDataSources 
+            }}
+            onSave={(data) => {
+              console.log('Data sources saved:', data);
+              setShowDataSourceEditor(false);
+            }}
+            onCancel={() => setShowDataSourceEditor(false)}
+          />
+        </div>
+      )}
 
       {/* Nuevo Modal Mejorado de What-If Scenarios */}
       {showWhatIfModal && (
