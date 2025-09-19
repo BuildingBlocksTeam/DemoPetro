@@ -532,8 +532,11 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
     }
     
     if (e.button === 0) {
+      // Auto-activar "Ver Detalles" con click izquierdo
       const node = workflowNodes.find(n => n.id === nodeId);
-      if (!node) return;
+      if (node) {
+        handleNodeClick(node);
+      }
 
       const rect = canvasRef.current.getBoundingClientRect();
       const mouseX = (e.clientX - rect.left - panOffset.x) / canvasScale;
@@ -2820,16 +2823,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           className="context-menu"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
-          <div 
-            className="context-menu-item"
-            onClick={() => {
-              const node = workflowNodes.find(n => n.id === contextMenu.nodeId);
-              handleNodeClick(node);
-            }}
-          >
-            <Eye size={16} />
-            Ver Detalles
-          </div>
           <div 
             className="context-menu-item"
             onClick={() => {

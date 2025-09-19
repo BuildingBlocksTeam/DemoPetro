@@ -4,7 +4,8 @@ import {
   ArrowLeft, CheckCircle, Clock, TrendingUp, Activity,
   Settings, Database, Mail, Bell, Code, Timer, Filter,
   Factory, Truck, Thermometer, Package, User, Link,
-  Diamond, Circle, Target, Layers, Eye, X, ChevronDown
+  Diamond, Circle, Target, Layers, Eye, X, ChevronDown,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const nodeTypes = [
@@ -139,7 +140,7 @@ const ReglaAutomatizacion = () => {
     settings: {}
   });
 
-  // Base de datos falsa de automatizaciones (simula persistencia)
+  // Base de datos falsa de automatizaciones
   const [savedAutomations, setSavedAutomations] = useState([
     {
       id: 'auto_001',
@@ -207,36 +208,8 @@ const ReglaAutomatizacion = () => {
       createdAt: new Date('2024-01-08T14:30:00'),
       category: 'Inventario',
       priority: 'media',
-      nodes: [
-        {
-          id: 'node-1',
-          type: 'low_stock',
-          name: 'Monitor Stock',
-          description: 'Vigila niveles de inventario',
-          position: { x: 50, y: 100 },
-          config: { threshold: 50 }
-        },
-        {
-          id: 'node-2',
-          type: 'condition',
-          name: 'Verificar Proveedor',
-          description: 'Comprobar disponibilidad del proveedor',
-          position: { x: 300, y: 100 },
-          config: {}
-        },
-        {
-          id: 'node-3',
-          type: 'generate_report',
-          name: 'Orden de Compra',
-          description: 'Generar orden automática',
-          position: { x: 550, y: 100 },
-          config: { template: 'purchase_order' }
-        }
-      ],
-      connections: [
-        { id: 'conn-1', from: 'node-1', to: 'node-2', label: 'Stock bajo' },
-        { id: 'conn-2', from: 'node-2', to: 'node-3', label: 'Proveedor disponible' }
-      ]
+      nodes: [],
+      connections: []
     },
     {
       id: 'auto_003',
@@ -316,14 +289,13 @@ const ReglaAutomatizacion = () => {
     setDraggedNode(null);
   }, [draggedNode]);
 
-  // Event listener para teclas - Mejorado para eliminar conexiones y nodos
+  // Event listener para teclas
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (activeView === 'editor') {
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
           if (selectedNode) {
-            // Eliminar nodo y sus conexiones
             setNodes(prev => prev.filter(node => node.id !== selectedNode.id));
             setConnections(prev => prev.filter(conn => 
               conn.from !== selectedNode.id && conn.to !== selectedNode.id
@@ -331,7 +303,6 @@ const ReglaAutomatizacion = () => {
             setSelectedNode(null);
             setShowConfigPanel(false);
           } else if (selectedConnection) {
-            // Eliminar conexión
             setConnections(prev => prev.filter(conn => conn.id !== selectedConnection.id));
             setSelectedConnection(null);
           }
@@ -457,7 +428,6 @@ const ReglaAutomatizacion = () => {
     }
   };
 
-  // Función corregida para calcular puntos de conexión EXTERNOS al nodo
   const getConnectionPoints = (fromNode, toNode) => {
     const nodeWidth = 180;
     const nodeHeight = 70;
@@ -467,57 +437,42 @@ const ReglaAutomatizacion = () => {
     const toCenterX = toNode.position.x + nodeWidth / 2;
     const toCenterY = toNode.position.y + nodeHeight / 2;
 
-    // Calcular dirección
     const deltaX = toCenterX - fromCenterX;
     const deltaY = toCenterY - fromCenterY;
 
     let fromX, fromY, toX, toY;
 
-    // Determinar punto de salida del nodo origen (EXTERNO)
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      // Conexión más horizontal
       if (deltaX > 0) {
-        // Hacia la derecha - salir del borde derecho
         fromX = fromNode.position.x + nodeWidth;
         fromY = fromCenterY;
       } else {
-        // Hacia la izquierda - salir del borde izquierdo
         fromX = fromNode.position.x;
         fromY = fromCenterY;
       }
     } else {
-      // Conexión más vertical
       if (deltaY > 0) {
-        // Hacia abajo - salir del borde inferior
         fromX = fromCenterX;
         fromY = fromNode.position.y + nodeHeight;
       } else {
-        // Hacia arriba - salir del borde superior
         fromX = fromCenterX;
         fromY = fromNode.position.y;
       }
     }
 
-    // Determinar punto de entrada al nodo destino (EXTERNO)
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      // Conexión más horizontal
       if (deltaX > 0) {
-        // Desde la izquierda - entrar por el borde izquierdo
         toX = toNode.position.x;
         toY = toCenterY;
       } else {
-        // Desde la derecha - entrar por el borde derecho
         toX = toNode.position.x + nodeWidth;
         toY = toCenterY;
       }
     } else {
-      // Conexión más vertical
       if (deltaY > 0) {
-        // Desde arriba - entrar por el borde superior
         toX = toCenterX;
         toY = toNode.position.y;
       } else {
-        // Desde abajo - entrar por el borde inferior
         toX = toCenterX;
         toY = toNode.position.y + nodeHeight;
       }
@@ -552,14 +507,12 @@ const ReglaAutomatizacion = () => {
     };
 
     if (editingAutomationId) {
-      // Actualizar automatización existente
       setSavedAutomations(prev => prev.map(auto => 
         auto.id === editingAutomationId 
           ? { ...auto, ...automationData }
           : auto
       ));
     } else {
-      // Crear nueva automatización
       const newAutomation = {
         ...automationData,
         id: `auto_${String(Date.now()).slice(-3)}`,
@@ -572,7 +525,6 @@ const ReglaAutomatizacion = () => {
       setSavedAutomations(prev => [...prev, newAutomation]);
     }
 
-    // Resetear editor
     setNodes([]);
     setConnections([]);
     setAutomationName('Nueva Automatización');
@@ -617,7 +569,6 @@ const ReglaAutomatizacion = () => {
     setSavedAutomations(prev => prev.filter(auto => auto.id !== automationId));
   };
 
-  // Función para eliminar nodo directamente con botón
   const deleteNode = (nodeId) => {
     setNodes(prev => prev.filter(node => node.id !== nodeId));
     setConnections(prev => prev.filter(conn => 
@@ -627,67 +578,589 @@ const ReglaAutomatizacion = () => {
     setShowConfigPanel(false);
   };
 
-  // Función para eliminar conexión directamente
   const deleteConnection = (connectionId) => {
     setConnections(prev => prev.filter(conn => conn.id !== connectionId));
     setSelectedConnection(null);
   };
 
-  return (
-    <div className="automation-app">
-      <style jsx>{`
-        .automation-app {
-          display: flex;
-          height: 100vh;
-          background: #fafbfc;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-        }
+  // Calcular estadísticas
+  const stats = {
+    total: savedAutomations.length,
+    active: savedAutomations.filter((a) => a.status === 'active').length,
+    paused: savedAutomations.filter((a) => a.status === 'paused').length,
+    totalExecutions: savedAutomations.reduce((sum, a) => sum + a.executions, 0),
+    avgSuccess: savedAutomations.length > 0
+      ? Math.round(savedAutomations.reduce((sum, a) => sum + a.successRate, 0) / savedAutomations.length)
+      : 0,
+  };
 
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
+  return (
+    <div className="automation-container">
+      {/* Header */}
+      <div className="content-header">
+        <div className="header-top">
+          <div className="header-info">
+            <h1>
+              {activeView === 'automations' ? 'Automatizaciones' : 
+               activeView === 'editor' ? (editingAutomationId ? 'Editar Automatización' : 'Nueva Automatización') :
+               'Vista de Automatización'}
+            </h1>
+            <p>
+              {activeView === 'automations' ? 'Diseña y gestiona flujos de trabajo automatizados' : 
+               activeView === 'editor' ? 'Construye tu automatización arrastrando componentes' :
+               'Visualización de solo lectura'}
+            </p>
+          </div>
+          <div className="header-actions">
+            {activeView === 'automations' && (
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  setEditingAutomationId(null);
+                  setAutomationName('Nueva Automatización');
+                  setAutomationDescription('');
+                  setNodes([]);
+                  setConnections([]);
+                  setActiveView('editor');
+                }}
+              >
+                <Plus size={16} />
+                Nueva Automatización
+              </button>
+            )}
+            {(activeView === 'editor' || activeView === 'viewer') && (
+              <>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setActiveView('automations');
+                    setEditingAutomationId(null);
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  Volver
+                </button>
+                {activeView === 'editor' && (
+                  <button className="btn btn-primary" onClick={saveAutomation}>
+                    <Save size={16} />
+                    {editingAutomationId ? 'Actualizar' : 'Guardar'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <div className="search-container">
+            <Search className="search-icon" size={16} />
+            <input 
+              type="text" 
+              className="search-input"
+              placeholder={activeView === 'automations' ? "Buscar automatizaciones..." : "Buscar componentes..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <select 
+            className="filter-select"
+            value={activeView === 'automations' ? filterStatus : filterCategory}
+            onChange={(e) => activeView === 'automations' ? setFilterStatus(e.target.value) : setFilterCategory(e.target.value)}
+          >
+            {activeView === 'automations' ? (
+              <>
+                <option value="all">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="paused">Pausados</option>
+                <option value="draft">Borradores</option>
+              </>
+            ) : (
+              <>
+                <option value="all">Todas las categorías</option>
+                <option value="triggers">Disparadores</option>
+                <option value="conditions">Condiciones</option>
+                <option value="actions">Acciones</option>
+                <option value="notifications">Notificaciones</option>
+                <option value="helpers">Utilidades</option>
+              </>
+            )}
+          </select>
+        </div>
+      </div>
+
+      {/* Workspace */}
+      <div className="workspace">
+        {activeView === 'automations' ? (
+          /* Vista de Automatizaciones */
+          <div className="automations-grid">
+            <div className="grid-container">
+              {filteredAutomations.map(automation => (
+                <div key={automation.id} className="automation-card">
+                  <div className="card-header">
+                    <div>
+                      <h3 className="card-title">{automation.name}</h3>
+                      <div className="card-meta">
+                        <span className={`status-badge ${getStatusColor(automation.status)}`}>
+                          {automation.status === 'active' ? 'Activo' : 
+                           automation.status === 'paused' ? 'Pausado' : 'Borrador'}
+                        </span>
+                        <span className={`priority-badge ${getPriorityColor(automation.priority)}`}>
+                          {automation.priority}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="card-description">{automation.description}</p>
+                  
+                  <div className="card-stats">
+                    <div className="stat-item">
+                      <div className="stat-value">{automation.executions.toLocaleString()}</div>
+                      <div className="stat-label">Ejecuciones</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{automation.successRate}%</div>
+                      <div className="stat-label">Éxito</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{automation.nodeCount}</div>
+                      <div className="stat-label">Nodos</div>
+                    </div>
+                    <div className="stat-item">
+                      <div className="stat-value">{automation.connectionCount}</div>
+                      <div className="stat-label">Conexiones</div>
+                    </div>
+                  </div>
+                  
+                  <div className="card-actions">
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => viewAutomation(automation)}
+                    >
+                      <Eye size={14} />
+                      Ver
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => editAutomation(automation)}
+                    >
+                      <Edit3 size={14} />
+                      Editar
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => toggleAutomationStatus(automation.id)}
+                    >
+                      {automation.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
+                      {automation.status === 'active' ? 'Pausar' : 'Activar'}
+                    </button>
+                    <button 
+                      className="btn btn-danger btn-sm"
+                      onClick={() => deleteAutomation(automation.id)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Vista del Editor/Viewer */
+          <div className="canvas-area">
+            <div className="canvas-toolbar">
+              <div className="canvas-info">
+                <span>{nodes.length} nodos</span>
+                <span>{connections.length} conexiones</span>
+                {activeView === 'viewer' && <span>Modo Solo Lectura</span>}
+              </div>
+              {activeView === 'editor' && (
+                <button 
+                  className={`btn btn-secondary ${connectionMode ? 'btn-primary' : ''}`}
+                  onClick={() => setConnectionMode(!connectionMode)}
+                >
+                  <Link size={16} />
+                  {connectionMode ? 'Cancelar conexión' : 'Conectar nodos'}
+                </button>
+              )}
+            </div>
+            
+            <div 
+              ref={canvasRef}
+              className={`automation-canvas ${activeView === 'viewer' ? 'viewer-mode' : ''}`}
+              onDrop={activeView === 'editor' ? handleCanvasDrop : undefined}
+              onDragOver={activeView === 'editor' ? (e) => e.preventDefault() : undefined}
+              onClick={() => {
+                if (activeView === 'editor') {
+                  if (connectionMode) {
+                    setConnectingFrom(null);
+                    setConnectionMode(false);
+                  }
+                  setSelectedNode(null);
+                  setSelectedConnection(null);
+                  setShowConfigPanel(false);
+                }
+              }}
+            >
+              <svg className="connections-svg">
+                <defs>
+                  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+                  </marker>
+                </defs>
+                {connections.map(connection => {
+                  const fromNode = nodes.find(n => n.id === connection.from);
+                  const toNode = nodes.find(n => n.id === connection.to);
+                  if (!fromNode || !toNode) return null;
+
+                  const { fromX, fromY, toX, toY } = getConnectionPoints(fromNode, toNode);
+                  
+                  return (
+                    <g key={connection.id}>
+                      <path
+                        d={`M ${fromX} ${fromY} L ${toX} ${toY}`}
+                        className={`connection-path ${selectedConnection?.id === connection.id ? 'selected' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleConnectionClick(connection, e);
+                        }}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {nodes.map(node => {
+                const Icon = getNodeIcon(node.type);
+                const isConnecting = connectingFrom === node.id;
+                return (
+                  <div
+                    key={node.id}
+                    className={`automation-node ${selectedNode?.id === node.id ? 'selected' : ''} ${isConnecting ? 'connecting' : ''}`}
+                    style={{
+                      left: node.position.x,
+                      top: node.position.y,
+                    }}
+                    onMouseDown={activeView === 'editor' ? (e) => handleNodeMouseDown(node, e) : undefined}
+                    onClick={activeView === 'editor' ? (e) => handleNodeClick(node, e) : undefined}
+                  >
+                    <div className="node-header">
+                      <div className="node-left">
+                        <div 
+                          className="node-icon" 
+                          style={{ backgroundColor: getNodeColor(node.type) }}
+                        >
+                          <Icon size={16} />
+                        </div>
+                        <div className="node-title">{node.name}</div>
+                      </div>
+                      {activeView === 'editor' && (
+                        <div className="node-actions">
+                          <button 
+                            className="node-action-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNode(node.id);
+                            }}
+                            title="Eliminar nodo"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="node-description">{node.description}</div>
+                  </div>
+                );
+              })}
+
+              {nodes.length === 0 && activeView === 'editor' && (
+                <div className="empty-canvas">
+                  <h3>Construye tu automatización</h3>
+                  <p>Arrastra componentes desde el panel lateral para comenzar</p>
+                </div>
+              )}
+
+              {connectionMode && activeView === 'editor' && (
+                <div className="connection-mode-indicator">
+                  {connectingFrom ? 'Selecciona el nodo destino' : 'Selecciona el nodo origen'}
+                </div>
+              )}
+
+              {(selectedNode || selectedConnection) && activeView === 'editor' && (
+                <div className="delete-indicator">
+                  Presiona Delete o Backspace para eliminar
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar derecho - Aparece para todas las vistas */}
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h2 className="sidebar-title">
+              {activeView === 'automations' ? 'Resumen' :
+               activeView === 'editor' ? 'Componentes' :
+               'Información'}
+            </h2>
+            <p className="sidebar-subtitle">
+              {activeView === 'automations' ? 'Estadísticas y filtros' :
+               activeView === 'editor' ? 'Arrastra elementos al canvas' :
+               'Detalles de la automatización'}
+            </p>
+          </div>
+          
+          <div className="sidebar-content">
+            {activeView === 'editor' && (
+              <>
+                <div className="component-categories">
+                  <div className="category-tabs">
+                    {['all', 'triggers', 'conditions', 'actions', 'notifications', 'helpers'].map(category => (
+                      <button
+                        key={category}
+                        className={`category-tab ${filterCategory === category ? 'active' : ''}`}
+                        onClick={() => setFilterCategory(category)}
+                      >
+                        {category === 'all' ? 'Todos' : 
+                         category === 'triggers' ? 'Disparadores' :
+                         category === 'conditions' ? 'Condiciones' :
+                         category === 'actions' ? 'Acciones' :
+                         category === 'notifications' ? 'Notificaciones' : 'Utilidades'}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="components-list">
+                    {filteredNodes.map(nodeType => {
+                      const Icon = nodeType.icon;
+                      return (
+                        <div
+                          key={nodeType.type}
+                          className="component-item"
+                          draggable
+                          onDragStart={() => handleDragStart(nodeType.type)}
+                        >
+                          <div className="component-content">
+                            <div 
+                              className="component-icon" 
+                              style={{ backgroundColor: nodeType.color }}
+                            >
+                              <Icon size={14} />
+                            </div>
+                            <div className="component-info">
+                              <h4 className="component-name">{nodeType.name}</h4>
+                              <p className="component-description">{nodeType.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeView === 'automations' && (
+              <>
+                <div className="component-categories">
+                  <h4 className="section-title">Resumen General</h4>
+                  <div className="summary-stats">
+                    <div className="summary-item">
+                      <div className="summary-icon" style={{ backgroundColor: '#10b981' }}>
+                        <CheckCircle size={16} />
+                      </div>
+                      <div className="summary-info">
+                        <span className="summary-value">{stats.active}</span>
+                        <span className="summary-label">Activas</span>
+                      </div>
+                    </div>
+                    <div className="summary-item">
+                      <div className="summary-icon" style={{ backgroundColor: '#f59e0b' }}>
+                        <Pause size={16} />
+                      </div>
+                      <div className="summary-info">
+                        <span className="summary-value">{stats.paused}</span>
+                        <span className="summary-label">Pausadas</span>
+                      </div>
+                    </div>
+                    <div className="summary-item">
+                      <div className="summary-icon" style={{ backgroundColor: '#3b82f6' }}>
+                        <TrendingUp size={16} />
+                      </div>
+                      <div className="summary-info">
+                        <span className="summary-value">{stats.avgSuccess}%</span>
+                        <span className="summary-label">Éxito</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {(activeView === 'viewer' || activeView === 'editor') && (
+              <div className="automation-info">
+                <div className="info-field">
+                  <label className="form-label">Nombre</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    value={automationName}
+                    onChange={(e) => setAutomationName(e.target.value)}
+                    placeholder="Nombre de la automatización"
+                    disabled={activeView === 'viewer'}
+                  />
+                </div>
+                
+                <div className="info-field">
+                  <label className="form-label">Descripción</label>
+                  <textarea 
+                    className="form-textarea"
+                    value={automationDescription}
+                    onChange={(e) => setAutomationDescription(e.target.value)}
+                    placeholder="Describe qué hace esta automatización"
+                    disabled={activeView === 'viewer'}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Panel de configuración - solo cuando hay algo seleccionado */}
+      {showConfigPanel && selectedNode && activeView === 'editor' && (
+        <div className="config-panel">
+          <div className="config-header">
+            <h3>Configuración</h3>
+            <button 
+              onClick={() => setShowConfigPanel(false)}
+              className="close-config"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="config-content">
+            <div className="config-field">
+              <label>Nombre del Componente</label>
+              <input 
+                type="text" 
+                value={nodeConfig.name}
+                onChange={(e) => {
+                  setNodeConfig(prev => ({ ...prev, name: e.target.value }));
+                  setNodes(prev => prev.map(node => 
+                    node.id === selectedNode.id ? { ...node, name: e.target.value } : node
+                  ));
+                }}
+                className="config-input"
+              />
+            </div>
+            
+            <div className="config-field">
+              <label>Descripción</label>
+              <textarea 
+                value={nodeConfig.description}
+                onChange={(e) => {
+                  setNodeConfig(prev => ({ ...prev, description: e.target.value }));
+                  setNodes(prev => prev.map(node => 
+                    node.id === selectedNode.id ? { ...node, description: e.target.value } : node
+                  ));
+                }}
+                rows={3}
+                className="config-textarea"
+              />
+            </div>
+
+            {/* Configuración específica por tipo de nodo */}
+            {selectedNode.type === 'temperature_alert' && (
+              <div className="config-section">
+                <h4>Configuración de Temperatura</h4>
+                <div className="config-row">
+                  <div className="config-field">
+                    <label>Min. °C</label>
+                    <input 
+                      type="number" 
+                      placeholder="-18"
+                      className="config-input"
+                    />
+                  </div>
+                  <div className="config-field">
+                    <label>Max. °C</label>
+                    <input 
+                      type="number" 
+                      placeholder="-15"
+                      className="config-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedNode.type === 'low_stock' && (
+              <div className="config-section">
+                <h4>Configuración de Stock</h4>
+                <div className="config-field">
+                  <label>Umbral Mínimo</label>
+                  <input 
+                    type="number" 
+                    placeholder="50"
+                    className="config-input"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .automation-container {
+          background: #fafbfc;
+          min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         }
 
         .content-header {
           background: white;
           border-bottom: 1px solid #e5e8eb;
-          padding: 8px 16px;
+          padding: 16px 24px;
         }
 
         .header-top {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;
         }
 
         .header-info h1 {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 600;
           color: #1a1d21;
-          margin: 0;
+          margin: 0 0 4px 0;
         }
 
         .header-info p {
-          font-size: 12px;
+          font-size: 14px;
           color: #6b7684;
           margin: 0;
         }
 
         .header-actions {
           display: flex;
-          gap: 8px;
+          gap: 12px;
         }
 
         .btn {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 13px;
+          gap: 8px;
+          padding: 10px 18px;
+          border-radius: 8px;
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -731,7 +1204,7 @@ const ReglaAutomatizacion = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 6px 16px;
+          padding: 12px 24px;
           border-bottom: 1px solid #e5e8eb;
           background: white;
         }
@@ -739,7 +1212,7 @@ const ReglaAutomatizacion = () => {
         .toolbar-left {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
         }
 
         .search-container {
@@ -747,12 +1220,12 @@ const ReglaAutomatizacion = () => {
         }
 
         .search-input {
-          width: 280px;
-          height: 32px;
-          padding: 0 12px 0 32px;
+          width: 320px;
+          height: 38px;
+          padding: 0 14px 0 40px;
           border: 1px solid #e5e8eb;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 8px;
+          font-size: 14px;
           background: #f8f9fa;
           transition: all 0.2s ease;
         }
@@ -765,17 +1238,17 @@ const ReglaAutomatizacion = () => {
 
         .search-icon {
           position: absolute;
-          left: 10px;
+          left: 14px;
           top: 50%;
           transform: translateY(-50%);
           color: #6b7684;
         }
 
         .filter-select {
-          padding: 6px 10px;
+          padding: 10px 14px;
           border: 1px solid #e5e8eb;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 8px;
+          font-size: 14px;
           background: white;
           cursor: pointer;
         }
@@ -786,31 +1259,29 @@ const ReglaAutomatizacion = () => {
         }
 
         .workspace {
-          flex: 1;
           display: flex;
-          overflow: hidden;
+          min-height: calc(100vh - 140px);
         }
 
         .canvas-area {
           flex: 1;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
         }
 
         .canvas-toolbar {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 16px;
+          padding: 16px 24px;
           background: #f8f9fa;
           border-bottom: 1px solid #e5e8eb;
         }
 
         .canvas-info {
           display: flex;
-          gap: 12px;
-          font-size: 13px;
+          gap: 20px;
+          font-size: 14px;
           color: #6b7684;
         }
 
@@ -822,19 +1293,20 @@ const ReglaAutomatizacion = () => {
           background-size: 20px 20px;
           overflow: auto;
           cursor: default;
+          min-height: 500px;
         }
 
         .automation-node {
           position: absolute;
           background: white;
-          border: 1px solid #e5e8eb;
-          border-radius: 8px;
+          border: 2px solid #e5e8eb;
+          border-radius: 12px;
           padding: 16px;
           width: 180px;
           min-height: 70px;
           cursor: move;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
           z-index: 2;
         }
 
@@ -845,19 +1317,19 @@ const ReglaAutomatizacion = () => {
 
         .automation-node.selected {
           border-color: #0066cc;
-          box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+          box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
         }
 
         .automation-node.connecting {
           border-color: #10b981;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
         }
 
         .node-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
         }
 
         .node-left {
@@ -869,7 +1341,7 @@ const ReglaAutomatizacion = () => {
 
         .node-actions {
           display: flex;
-          gap: 4px;
+          gap: 6px;
           opacity: 0;
           transition: opacity 0.2s ease;
         }
@@ -879,13 +1351,13 @@ const ReglaAutomatizacion = () => {
         }
 
         .node-action-btn {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           border: none;
           background: transparent;
           color: #6b7684;
           cursor: pointer;
-          border-radius: 4px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -903,9 +1375,9 @@ const ReglaAutomatizacion = () => {
         }
 
         .node-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 6px;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -914,15 +1386,15 @@ const ReglaAutomatizacion = () => {
         }
 
         .node-title {
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 600;
           color: #1a1d21;
           flex: 1;
-          line-height: 1.2;
+          line-height: 1.3;
         }
 
         .node-description {
-          font-size: 12px;
+          font-size: 13px;
           color: #6b7684;
           line-height: 1.4;
         }
@@ -937,27 +1409,27 @@ const ReglaAutomatizacion = () => {
         }
 
         .empty-canvas h3 {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 600;
-          margin: 0 0 6px 0;
+          margin: 0 0 8px 0;
           color: #1a1d21;
         }
 
         .empty-canvas p {
-          font-size: 14px;
+          font-size: 16px;
           margin: 0;
         }
 
         .automations-grid {
           flex: 1;
-          padding: 16px;
+          padding: 24px;
           overflow-y: auto;
         }
 
         .grid-container {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: 20px;
           max-width: 1400px;
           margin: 0 auto;
         }
@@ -965,57 +1437,57 @@ const ReglaAutomatizacion = () => {
         .automation-card {
           background: white;
           border: 1px solid #e5e8eb;
-          border-radius: 10px;
-          padding: 20px;
+          border-radius: 12px;
+          padding: 24px;
           transition: all 0.2s ease;
         }
 
         .automation-card:hover {
           border-color: #d0d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
 
         .card-title {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 600;
           color: #1a1d21;
-          margin: 0 0 4px 0;
+          margin: 0 0 8px 0;
         }
 
         .card-meta {
           display: flex;
-          gap: 6px;
-          margin-bottom: 10px;
+          gap: 8px;
+          margin-bottom: 12px;
         }
 
         .status-badge, .priority-badge {
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 500;
-          padding: 3px 6px;
-          border-radius: 5px;
+          padding: 4px 8px;
+          border-radius: 6px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
 
         .card-description {
-          font-size: 13px;
+          font-size: 14px;
           color: #6b7684;
-          line-height: 1.5;
-          margin-bottom: 16px;
+          line-height: 1.6;
+          margin-bottom: 20px;
         }
 
         .card-stats {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 16px;
+          margin-bottom: 20px;
         }
 
         .stat-item {
@@ -1023,14 +1495,14 @@ const ReglaAutomatizacion = () => {
         }
 
         .stat-value {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 600;
           color: #1a1d21;
-          margin-bottom: 3px;
+          margin-bottom: 4px;
         }
 
         .stat-label {
-          font-size: 11px;
+          font-size: 12px;
           color: #6b7684;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1038,12 +1510,12 @@ const ReglaAutomatizacion = () => {
 
         .card-actions {
           display: flex;
-          gap: 6px;
+          gap: 8px;
         }
 
         .btn-sm {
-          padding: 6px 10px;
-          font-size: 11px;
+          padding: 8px 14px;
+          font-size: 12px;
           flex: 1;
           justify-content: center;
         }
@@ -1054,22 +1526,23 @@ const ReglaAutomatizacion = () => {
           border-left: 1px solid #e5e8eb;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          max-height: calc(100vh - 140px);
         }
 
         .sidebar-header {
-          padding: 16px;
+          padding: 20px;
+          border-bottom: 1px solid #e5e8eb;
         }
 
         .sidebar-title {
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 600;
           color: #1a1d21;
           margin: 0 0 6px 0;
         }
 
         .sidebar-subtitle {
-          font-size: 13px;
+          font-size: 14px;
           color: #6b7684;
           margin: 0;
         }
@@ -1077,27 +1550,27 @@ const ReglaAutomatizacion = () => {
         .sidebar-content {
           flex: 1;
           overflow-y: auto;
-          padding: 12px;
+          padding: 16px;
         }
 
         .component-categories {
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
         .category-tabs {
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
-          margin-bottom: 12px;
+          gap: 8px;
+          margin-bottom: 16px;
         }
 
         .category-tab {
-          padding: 5px 10px;
+          padding: 8px 12px;
           border: 1px solid #e5e8eb;
           background: white;
           color: #6b7684;
-          border-radius: 5px;
-          font-size: 11px;
+          border-radius: 6px;
+          font-size: 12px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -1119,15 +1592,13 @@ const ReglaAutomatizacion = () => {
         .components-list {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          max-height: 400px;
-          overflow-y: auto;
+          gap: 8px;
         }
 
         .component-item {
-          padding: 10px;
+          padding: 12px;
           border: 1px solid #e5e8eb;
-          border-radius: 6px;
+          border-radius: 8px;
           background: white;
           cursor: move;
           transition: all 0.2s ease;
@@ -1135,20 +1606,20 @@ const ReglaAutomatizacion = () => {
 
         .component-item:hover {
           border-color: #0066cc;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
         }
 
         .component-content {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
         }
 
         .component-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 5px;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1162,54 +1633,52 @@ const ReglaAutomatizacion = () => {
         }
 
         .component-name {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           color: #1a1d21;
           margin: 0 0 2px 0;
         }
 
         .component-description {
-          font-size: 10px;
+          font-size: 11px;
           color: #6b7684;
           margin: 0;
           line-height: 1.3;
         }
 
-        .config-panel {
-          padding: 12px;
+        .automation-info {
+          padding: 16px;
           border-top: 1px solid #e5e8eb;
           background: #f8f9fa;
-          max-height: 300px;
-          overflow-y: auto;
         }
 
-        .config-form {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
+        .info-field {
+          margin-bottom: 16px;
         }
 
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .info-field:last-child {
+          margin-bottom: 0;
         }
 
         .form-label {
-          font-size: 11px;
+          display: block;
+          font-size: 12px;
           font-weight: 500;
           color: #1a1d21;
+          margin-bottom: 6px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
 
         .form-input, .form-textarea {
-          padding: 8px 10px;
+          width: 100%;
+          padding: 10px 12px;
           border: 1px solid #e5e8eb;
-          border-radius: 5px;
-          font-size: 13px;
+          border-radius: 6px;
+          font-size: 14px;
           background: white;
           transition: border-color 0.2s ease;
+          box-sizing: border-box;
         }
 
         .form-input:focus, .form-textarea:focus {
@@ -1219,7 +1688,7 @@ const ReglaAutomatizacion = () => {
 
         .form-textarea {
           resize: vertical;
-          min-height: 60px;
+          min-height: 80px;
         }
 
         .connections-svg {
@@ -1233,7 +1702,7 @@ const ReglaAutomatizacion = () => {
         }
 
         .connection-path {
-          stroke: #6b7684;
+          stroke: #6b7280;
           stroke-width: 2;
           fill: none;
           marker-end: url(#arrowhead);
@@ -1253,40 +1722,32 @@ const ReglaAutomatizacion = () => {
           filter: drop-shadow(0 0 4px rgba(0, 102, 204, 0.3));
         }
 
-        .connection-hit-area {
-          stroke: transparent;
-          stroke-width: 8;
-          fill: none;
-          pointer-events: all;
-          cursor: pointer;
-        }
-
         .connection-mode-indicator {
           position: absolute;
-          top: 20px;
+          top: 24px;
           left: 50%;
           transform: translateX(-50%);
           background: #dbeafe;
           border: 1px solid #93c5fd;
           color: #1e40af;
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 13px;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
           font-weight: 500;
           z-index: 10;
         }
 
         .delete-indicator {
           position: absolute;
-          bottom: 20px;
+          bottom: 24px;
           left: 50%;
           transform: translateX(-50%);
           background: #fef2f2;
           border: 1px solid #fecaca;
           color: #dc2626;
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 13px;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
           font-weight: 500;
           z-index: 10;
         }
@@ -1303,416 +1764,183 @@ const ReglaAutomatizacion = () => {
           cursor: default;
         }
 
+        .summary-stats {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .summary-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid #e5e8eb;
+          border-radius: 8px;
+          background: white;
+          transition: all 0.2s ease;
+        }
+
+        .summary-item:hover {
+          border-color: #d0d5db;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          flex-shrink: 0;
+        }
+
+        .summary-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .summary-value {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1d21;
+          margin-bottom: 2px;
+        }
+
+        .summary-label {
+          font-size: 12px;
+          color: #6b7684;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .section-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1a1d21;
+          margin: 0 0 12px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .config-panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 350px;
+          height: 100vh;
+          background: white;
+          border-left: 1px solid #e5e8eb;
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .config-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #e5e8eb;
+        }
+
+        .config-header h3 {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1a1d21;
+          margin: 0;
+        }
+
+        .close-config {
+          background: none;
+          border: none;
+          color: #6b7684;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+
+        .close-config:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        .config-content {
+          flex: 1;
+          padding: 20px;
+          overflow-y: auto;
+        }
+
+        .config-field {
+          margin-bottom: 16px;
+        }
+
+        .config-field label {
+          display: block;
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 6px;
+        }
+
+        .config-input, .config-textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: border-color 0.2s ease;
+          box-sizing: border-box;
+        }
+
+        .config-input:focus, .config-textarea:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 1px #3b82f6;
+        }
+
+        .config-section {
+          margin-top: 24px;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .config-section h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0 0 12px 0;
+        }
+
+        .config-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
         @media (max-width: 1024px) {
-          .sidebar {
-            position: fixed;
-            right: -320px;
-            top: 0;
-            height: 100vh;
-            z-index: 100;
-            transition: right 0.3s ease;
-            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+          .workspace {
+            flex-direction: column;
           }
 
-          .sidebar.open {
-            right: 0;
+          .sidebar {
+            width: 100%;
+            max-height: 300px;
+          }
+
+          .config-panel {
+            width: 100%;
+            height: 50vh;
+            top: auto;
+            bottom: 0;
           }
         }
       `}</style>
-
-      {/* Contenido Principal */}
-      <div className="main-content">
-        {/* Header más compacto */}
-        <div className="content-header">
-          <div className="header-top">
-            <div className="header-info">
-              <h1>Automatización de Procesos</h1>
-              <p>Diseña y gestiona flujos de trabajo automatizados</p>
-            </div>
-            <div className="header-actions">
-              {activeView === 'automations' && (
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditingAutomationId(null);
-                    setAutomationName('Nueva Automatización');
-                    setAutomationDescription('');
-                    setNodes([]);
-                    setConnections([]);
-                    setActiveView('editor');
-                  }}
-                >
-                  <Plus size={14} />
-                  Nueva Automatización
-                </button>
-              )}
-              {(activeView === 'editor' || activeView === 'viewer') && (
-                <>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setActiveView('automations');
-                      setEditingAutomationId(null);
-                    }}
-                  >
-                    <ArrowLeft size={14} />
-                    Volver
-                  </button>
-                  {activeView === 'editor' && (
-                    <button className="btn btn-primary" onClick={saveAutomation}>
-                      <Save size={14} />
-                      {editingAutomationId ? 'Actualizar' : 'Guardar'}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Toolbar compacto */}
-          <div className="toolbar">
-            <div className="toolbar-left">
-              <div className="search-container">
-                <Search className="search-icon" size={14} />
-                <input 
-                  type="text" 
-                  className="search-input"
-                  placeholder="Buscar automatizaciones..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <select 
-                className="filter-select"
-                value={activeView === 'automations' ? filterStatus : filterCategory}
-                onChange={(e) => activeView === 'automations' ? setFilterStatus(e.target.value) : setFilterCategory(e.target.value)}
-              >
-                {activeView === 'automations' ? (
-                  <>
-                    <option value="all">Todos los estados</option>
-                    <option value="active">Activos</option>
-                    <option value="paused">Pausados</option>
-                    <option value="draft">Borradores</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="all">Todas las categorías</option>
-                    <option value="triggers">Disparadores</option>
-                    <option value="conditions">Condiciones</option>
-                    <option value="actions">Acciones</option>
-                    <option value="notifications">Notificaciones</option>
-                    <option value="helpers">Utilidades</option>
-                  </>
-                )}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Workspace */}
-        <div className="workspace">
-          {activeView === 'automations' ? (
-            /* Vista de Automatizaciones */
-            <div className="automations-grid">
-              <div className="grid-container">
-                {filteredAutomations.map(automation => (
-                  <div key={automation.id} className="automation-card">
-                    <div className="card-header">
-                      <div>
-                        <h3 className="card-title">{automation.name}</h3>
-                        <div className="card-meta">
-                          <span className={`status-badge ${getStatusColor(automation.status)}`}>
-                            {automation.status === 'active' ? 'Activo' : 
-                             automation.status === 'paused' ? 'Pausado' : 'Borrador'}
-                          </span>
-                          <span className={`priority-badge ${getPriorityColor(automation.priority)}`}>
-                            {automation.priority}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <p className="card-description">{automation.description}</p>
-                    
-                    <div className="card-stats">
-                      <div className="stat-item">
-                        <div className="stat-value">{automation.executions.toLocaleString()}</div>
-                        <div className="stat-label">Ejecuciones</div>
-                      </div>
-                      <div className="stat-item">
-                        <div className="stat-value">{automation.successRate}%</div>
-                        <div className="stat-label">Éxito</div>
-                      </div>
-                      <div className="stat-item">
-                        <div className="stat-value">{automation.nodeCount}</div>
-                        <div className="stat-label">Nodos</div>
-                      </div>
-                      <div className="stat-item">
-                        <div className="stat-value">{automation.connectionCount}</div>
-                        <div className="stat-label">Conexiones</div>
-                      </div>
-                    </div>
-                    
-                    <div className="card-actions">
-                      <button 
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => viewAutomation(automation)}
-                      >
-                        <Eye size={12} />
-                        Ver
-                      </button>
-                      <button 
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => editAutomation(automation)}
-                      >
-                        <Edit3 size={12} />
-                        Editar
-                      </button>
-                      <button 
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => toggleAutomationStatus(automation.id)}
-                      >
-                        {automation.status === 'active' ? <Pause size={12} /> : <Play size={12} />}
-                        {automation.status === 'active' ? 'Pausar' : 'Activar'}
-                      </button>
-                      <button 
-                        className="btn btn-danger btn-sm"
-                        onClick={() => deleteAutomation(automation.id)}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Vista del Editor/Viewer */
-            <div className="canvas-area">
-              <div className="canvas-toolbar">
-                <div className="canvas-info">
-                  <span>{nodes.length} nodos</span>
-                  <span>{connections.length} conexiones</span>
-                  {activeView === 'viewer' && <span>Modo Solo Lectura</span>}
-                </div>
-                {activeView === 'editor' && (
-                  <button 
-                    className={`btn btn-secondary ${connectionMode ? 'btn-primary' : ''}`}
-                    onClick={() => setConnectionMode(!connectionMode)}
-                  >
-                    <Link size={14} />
-                    {connectionMode ? 'Cancelar conexión' : 'Conectar nodos'}
-                  </button>
-                )}
-              </div>
-              
-              <div 
-                ref={canvasRef}
-                className={`automation-canvas ${activeView === 'viewer' ? 'viewer-mode' : ''}`}
-                onDrop={activeView === 'editor' ? handleCanvasDrop : undefined}
-                onDragOver={activeView === 'editor' ? (e) => e.preventDefault() : undefined}
-                onClick={() => {
-                  if (activeView === 'editor') {
-                    if (connectionMode) {
-                      setConnectingFrom(null);
-                      setConnectionMode(false);
-                    }
-                    setSelectedNode(null);
-                    setSelectedConnection(null);
-                    setShowConfigPanel(false);
-                  }
-                }}
-              >
-                <svg className="connections-svg">
-                  <defs>
-                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7684" />
-                    </marker>
-                  </defs>
-                  {connections.map(connection => {
-                    const fromNode = nodes.find(n => n.id === connection.from);
-                    const toNode = nodes.find(n => n.id === connection.to);
-                    if (!fromNode || !toNode) return null;
-
-                    const { fromX, fromY, toX, toY } = getConnectionPoints(fromNode, toNode);
-                    
-                    return (
-                      <g key={connection.id}>
-                        <path
-                          d={`M ${fromX} ${fromY} L ${toX} ${toY}`}
-                          className={`connection-path ${selectedConnection?.id === connection.id ? 'selected' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConnectionClick(connection, e);
-                          }}
-                        />
-                        {/* Área invisible más gruesa para mejor clickabilidad */}
-                        <path
-                          d={`M ${fromX} ${fromY} L ${toX} ${toY}`}
-                          className="connection-hit-area"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConnectionClick(connection, e);
-                          }}
-                        />
-                      </g>
-                    );
-                  })}
-                </svg>
-
-                {nodes.map(node => {
-                  const Icon = getNodeIcon(node.type);
-                  const isConnecting = connectingFrom === node.id;
-                  return (
-                    <div
-                      key={node.id}
-                      className={`automation-node ${selectedNode?.id === node.id ? 'selected' : ''} ${isConnecting ? 'connecting' : ''}`}
-                      style={{
-                        left: node.position.x,
-                        top: node.position.y,
-                      }}
-                      onMouseDown={activeView === 'editor' ? (e) => handleNodeMouseDown(node, e) : undefined}
-                      onClick={activeView === 'editor' ? (e) => handleNodeClick(node, e) : undefined}
-                    >
-                      <div className="node-header">
-                        <div className="node-left">
-                          <div 
-                            className="node-icon" 
-                            style={{ backgroundColor: getNodeColor(node.type) }}
-                          >
-                            <Icon size={14} />
-                          </div>
-                          <div className="node-title">{node.name}</div>
-                        </div>
-                        {activeView === 'editor' && (
-                          <div className="node-actions">
-                            <button 
-                              className="node-action-btn delete"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNode(node.id);
-                              }}
-                              title="Eliminar nodo"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="node-description">{node.description}</div>
-                    </div>
-                  );
-                })}
-
-                {nodes.length === 0 && activeView === 'editor' && (
-                  <div className="empty-canvas">
-                    <h3>Construye tu automatización</h3>
-                    <p>Arrastra componentes desde el panel lateral para comenzar</p>
-                  </div>
-                )}
-
-                {connectionMode && activeView === 'editor' && (
-                  <div className="connection-mode-indicator">
-                    {connectingFrom ? 'Selecciona el nodo destino' : 'Selecciona el nodo origen'}
-                  </div>
-                )}
-
-                {(selectedNode || selectedConnection) && activeView === 'editor' && (
-                  <div className="delete-indicator">
-                    Presiona Delete o Backspace para eliminar
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sidebar derecho - Solo en modo editor */}
-      {activeView === 'editor' && (
-        <div className="sidebar">
-          <div className="sidebar-header">
-            <h2 className="sidebar-title">Componentes</h2>
-            <p className="sidebar-subtitle">Arrastra los elementos al canvas</p>
-          </div>
-          
-          <div className="sidebar-content">
-            <div className="component-categories">
-              <div className="category-tabs">
-                {['all', 'triggers', 'conditions', 'actions', 'notifications', 'helpers'].map(category => (
-                  <button
-                    key={category}
-                    className={`category-tab ${filterCategory === category ? 'active' : ''}`}
-                    onClick={() => setFilterCategory(category)}
-                  >
-                    {category === 'all' ? 'Todos' : 
-                     category === 'triggers' ? 'Disparadores' :
-                     category === 'conditions' ? 'Condiciones' :
-                     category === 'actions' ? 'Acciones' :
-                     category === 'notifications' ? 'Notificaciones' : 'Utilidades'}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="components-list">
-                {filteredNodes.map(nodeType => {
-                  const Icon = nodeType.icon;
-                  return (
-                    <div
-                      key={nodeType.type}
-                      className="component-item"
-                      draggable
-                      onDragStart={() => handleDragStart(nodeType.type)}
-                    >
-                      <div className="component-content">
-                        <div 
-                          className="component-icon" 
-                          style={{ backgroundColor: nodeType.color }}
-                        >
-                          <Icon size={12} />
-                        </div>
-                        <div className="component-info">
-                          <h4 className="component-name">{nodeType.name}</h4>
-                          <p className="component-description">{nodeType.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Panel de configuración */}
-          {showConfigPanel && selectedNode && (
-            <div className="config-panel">
-              <div className="config-form">
-                <div className="form-group">
-                  <label className="form-label">Nombre del Proyecto</label>
-                  <input 
-                    type="text" 
-                    className="form-input"
-                    value={automationName}
-                    onChange={(e) => setAutomationName(e.target.value)}
-                    placeholder="Nombre de la automatización"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label className="form-label">Descripción</label>
-                  <textarea 
-                    className="form-textarea"
-                    value={automationDescription}
-                    onChange={(e) => setAutomationDescription(e.target.value)}
-                    placeholder="Describe qué hace esta automatización"
-                  />
-                </div>
-                
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
