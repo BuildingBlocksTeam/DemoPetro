@@ -4,7 +4,9 @@ import {
   Download, Upload, Link, Users, Shield, Monitor, 
   Edit3, Trash2, Plus, ChevronRight, ChevronDown,
   Workflow, Circle, ArrowRight, CheckCircle, Clock,
-  AlertTriangle, Zap, Activity, Search, Filter, X
+  AlertTriangle, Zap, Activity, Search, Filter, X,
+  Key, Copy, Eye, EyeOff, Code, Globe, BarChart3,
+  Book, Terminal, Lock, Unlock
 } from 'lucide-react';
 
 const Configuracion = () => {
@@ -12,6 +14,7 @@ const Configuracion = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [showApiKey, setShowApiKey] = useState({});
   const [config, setConfig] = useState({
     defaultFileFormat: 'xlsx',
     autoSync: true,
@@ -22,6 +25,122 @@ const Configuracion = () => {
     language: 'es',
     currency: 'USD'
   });
+
+  // Estado para API Keys
+  const [apiKeys, setApiKeys] = useState([
+    {
+      id: 1,
+      name: 'Production Key',
+      key: 'dt_prod_sk_1a2b3c4d5e6f7g8h9i0j',
+      created: '2024-01-15',
+      lastUsed: '2024-01-18T10:30:00Z',
+      requests: 15420,
+      status: 'active',
+      permissions: ['read', 'write', 'admin'],
+      rateLimit: 1000,
+      environment: 'production'
+    },
+    {
+      id: 2,
+      name: 'Development Key',
+      key: 'dt_dev_sk_9z8y7x6w5v4u3t2s1r0q',
+      created: '2024-01-10',
+      lastUsed: '2024-01-18T15:45:00Z',
+      requests: 3250,
+      status: 'active',
+      permissions: ['read', 'write'],
+      rateLimit: 100,
+      environment: 'development'
+    },
+    {
+      id: 3,
+      name: 'Testing Key',
+      key: 'dt_test_sk_p9o8i7u6y5t4r3e2w1q0',
+      created: '2024-01-12',
+      lastUsed: '2024-01-17T09:15:00Z',
+      requests: 850,
+      status: 'inactive',
+      permissions: ['read'],
+      rateLimit: 50,
+      environment: 'testing'
+    }
+  ]);
+
+  // Endpoints de la API
+  const apiEndpoints = [
+    {
+      method: 'GET',
+      path: '/api/v1/data/sources',
+      description: 'Obtiene todas las fuentes de datos disponibles',
+      category: 'Data Sources'
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/data/sources',
+      description: 'Crea una nueva fuente de datos',
+      category: 'Data Sources'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/data/sources/{id}',
+      description: 'Obtiene una fuente de datos específica',
+      category: 'Data Sources'
+    },
+    {
+      method: 'PUT',
+      path: '/api/v1/data/sources/{id}',
+      description: 'Actualiza una fuente de datos existente',
+      category: 'Data Sources'
+    },
+    {
+      method: 'DELETE',
+      path: '/api/v1/data/sources/{id}',
+      description: 'Elimina una fuente de datos',
+      category: 'Data Sources'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/workflows',
+      description: 'Lista todos los flujos de trabajo',
+      category: 'Workflows'
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/workflows',
+      description: 'Crea un nuevo flujo de trabajo',
+      category: 'Workflows'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/workflows/{id}/status',
+      description: 'Obtiene el estado de un flujo específico',
+      category: 'Workflows'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/integrations',
+      description: 'Lista todas las integraciones disponibles',
+      category: 'Integrations'
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/integrations/{service}/connect',
+      description: 'Conecta con un servicio externo',
+      category: 'Integrations'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/analytics/dashboard',
+      description: 'Obtiene datos para el dashboard principal',
+      category: 'Analytics'
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/analytics/reports',
+      description: 'Lista todos los reportes disponibles',
+      category: 'Analytics'
+    }
+  ];
 
   // Datos mejorados de flujos de tareas genéricos
   const [workflowData] = useState([
@@ -465,6 +584,46 @@ const Configuracion = () => {
     console.log('Guardando configuración:', config);
   };
 
+  const generateApiKey = () => {
+    const environments = ['production', 'development', 'testing'];
+    const randomEnv = environments[Math.floor(Math.random() * environments.length)];
+    const newKey = {
+      id: apiKeys.length + 1,
+      name: `New ${randomEnv} Key`,
+      key: `dt_${randomEnv.slice(0,4)}_sk_${Math.random().toString(36).substring(2, 22)}`,
+      created: new Date().toISOString().split('T')[0],
+      lastUsed: null,
+      requests: 0,
+      status: 'active',
+      permissions: ['read'],
+      rateLimit: randomEnv === 'production' ? 1000 : randomEnv === 'development' ? 100 : 50,
+      environment: randomEnv
+    };
+    setApiKeys(prev => [...prev, newKey]);
+  };
+
+  const toggleApiKeyVisibility = (keyId) => {
+    setShowApiKey(prev => ({
+      ...prev,
+      [keyId]: !prev[keyId]
+    }));
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    // Aquí podrías añadir una notificación de "copiado"
+  };
+
+  const deleteApiKey = (keyId) => {
+    setApiKeys(prev => prev.filter(key => key.id !== keyId));
+  };
+
+  const updateApiKeyStatus = (keyId, newStatus) => {
+    setApiKeys(prev => prev.map(key => 
+      key.id === keyId ? { ...key, status: newStatus } : key
+    ));
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'connected': return <CheckCircle size={16} color="#22c55e" />;
@@ -484,6 +643,16 @@ const Configuracion = () => {
       case 'testing': return <Shield size={16} />;
       case 'deployment': return <Upload size={16} />;
       default: return <Settings size={16} />;
+    }
+  };
+
+  const getMethodColor = (method) => {
+    switch (method) {
+      case 'GET': return '#22c55e';
+      case 'POST': return '#3b82f6';
+      case 'PUT': return '#f59e0b';
+      case 'DELETE': return '#ef4444';
+      default: return '#6b7280';
     }
   };
 
@@ -835,6 +1004,9 @@ const Configuracion = () => {
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .action-btn:hover {
@@ -852,6 +1024,177 @@ const Configuracion = () => {
         .action-btn.primary:hover {
           opacity: 0.9;
           transform: translateY(-1px);
+        }
+
+        .api-keys-grid {
+          display: grid;
+          gap: 16px;
+        }
+
+        .api-key-card {
+          background: white;
+          border: 1px solid #e5e8eb;
+          border-radius: 12px;
+          padding: 20px;
+          transition: all 0.2s ease;
+        }
+
+        .api-key-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-key-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 16px;
+        }
+
+        .api-key-info h4 {
+          font-size: 16px;
+          font-weight: 600;
+          margin: 0 0 4px 0;
+          color: #1a1d21;
+        }
+
+        .api-key-environment {
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .env-production {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .env-development {
+          background: #dbeafe;
+          color: #2563eb;
+        }
+
+        .env-testing {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        .api-key-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .api-key-value {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #f8fafc;
+          border: 1px solid #e5e8eb;
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 16px;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 13px;
+        }
+
+        .api-key-text {
+          flex: 1;
+          color: #374151;
+          letter-spacing: 0.5px;
+        }
+
+        .api-key-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .api-stat {
+          text-align: center;
+        }
+
+        .api-stat-value {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1d21;
+          margin-bottom: 4px;
+        }
+
+        .api-stat-label {
+          font-size: 11px;
+          color: #6b7684;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .api-key-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .endpoints-grid {
+          display: grid;
+          gap: 2px;
+          margin-top: 16px;
+        }
+
+        .endpoint-item {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          background: #f8fafc;
+          border: 1px solid #e5e8eb;
+          transition: all 0.2s ease;
+        }
+
+        .endpoint-item:first-child {
+          border-radius: 8px 8px 0 0;
+        }
+
+        .endpoint-item:last-child {
+          border-radius: 0 0 8px 8px;
+        }
+
+        .endpoint-item:only-child {
+          border-radius: 8px;
+        }
+
+        .endpoint-item:hover {
+          background: #f1f5f9;
+        }
+
+        .endpoint-method {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          min-width: 60px;
+          text-align: center;
+          margin-right: 12px;
+        }
+
+        .endpoint-path {
+          flex: 1;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-size: 13px;
+          color: #374151;
+          margin-right: 12px;
+        }
+
+        .endpoint-description {
+          flex: 2;
+          font-size: 13px;
+          color: #6b7684;
         }
 
         .workflow-table {
@@ -934,6 +1277,11 @@ const Configuracion = () => {
         .status-pending {
           background: #f1f5f9;
           color: #64748b;
+        }
+
+        .status-inactive {
+          background: #fee2e2;
+          color: #dc2626;
         }
 
         .progress-cell {
@@ -1023,6 +1371,24 @@ const Configuracion = () => {
           border-color: #d0d5db;
         }
 
+        .btn-success {
+          background: #22c55e;
+          color: white;
+        }
+
+        .btn-success:hover {
+          background: #16a34a;
+        }
+
+        .btn-danger {
+          background: #ef4444;
+          color: white;
+        }
+
+        .btn-danger:hover {
+          background: #dc2626;
+        }
+
         .canvas-legend {
           display: flex;
           gap: 24px;
@@ -1042,6 +1408,39 @@ const Configuracion = () => {
           width: 12px;
           height: 12px;
           border-radius: 2px;
+        }
+
+        .info-panel {
+          background: #f8fafc;
+          border: 1px solid #e5e8eb;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+
+        .info-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .info-content {
+          font-size: 13px;
+          color: #6b7684;
+          line-height: 1.5;
+        }
+
+        .endpoint-category {
+          background: #f1f5f9;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 8px 16px;
+          border-bottom: 1px solid #e5e8eb;
         }
 
         @media (max-width: 768px) {
@@ -1070,6 +1469,21 @@ const Configuracion = () => {
           .workflow-canvas {
             min-width: 600px;
             height: 300px;
+          }
+
+          .api-key-actions,
+          .action-buttons {
+            flex-wrap: wrap;
+          }
+
+          .endpoint-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
+          .endpoint-method {
+            margin-right: 0;
           }
         }
       `}</style>
@@ -1102,6 +1516,12 @@ const Configuracion = () => {
             onClick={() => setActiveTab('integrations')}
           >
             Integraciones
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'api' ? 'active' : ''}`}
+            onClick={() => setActiveTab('api')}
+          >
+            API y Desarrollo
           </button>
         </div>
 
@@ -1459,6 +1879,203 @@ const Configuracion = () => {
                 })}
               </div>
             </div>
+          )}
+
+          {activeTab === 'api' && (
+            <>
+              <div className="info-panel">
+                <div className="info-title">
+                  <Globe size={16} />
+                  Información de la API
+                </div>
+                <div className="info-content">
+                  La API de Digital Twin Platform proporciona acceso programático a todas las funcionalidades principales de la plataforma. 
+                  Utiliza autenticación mediante API Keys y sigue los estándares REST con respuestas en formato JSON.
+                  <br /><br />
+                  <strong>Base URL:</strong> https://api.digitaltwin.platform/v1
+                </div>
+              </div>
+
+              <div className="config-section">
+                <div style={{ display: 'flex', justify: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 className="section-title">
+                    <Key size={20} />
+                    Gestión de API Keys
+                  </h3>
+                </div>
+
+                <div className="api-keys-grid">
+                  {apiKeys.map((apiKey) => (
+                    <div key={apiKey.id} className="api-key-card">
+                      <div className="api-key-header">
+                        <div className="api-key-info">
+                          <h4>{apiKey.name}</h4>
+                          <span className={`api-key-environment env-${apiKey.environment}`}>
+                            {apiKey.environment}
+                          </span>
+                        </div>
+                        <div className="api-key-status">
+                          {apiKey.status === 'active' ? 
+                            <CheckCircle size={16} color="#22c55e" /> :
+                            <Circle size={16} color="#ef4444" />
+                          }
+                          {apiKey.status === 'active' ? 'Activa' : 'Inactiva'}
+                        </div>
+                      </div>
+
+                      <div className="api-key-value">
+                        <span className="api-key-text">
+                          {showApiKey[apiKey.id] ? apiKey.key : '*'.repeat(apiKey.key.length)}
+                        </span>
+                        <button 
+                          className="action-btn"
+                          onClick={() => toggleApiKeyVisibility(apiKey.id)}
+                        >
+                          {showApiKey[apiKey.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => copyToClipboard(apiKey.key)}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+
+                      <div className="api-key-stats">
+                        <div className="api-stat">
+                          <div className="api-stat-value">{apiKey.requests.toLocaleString()}</div>
+                          <div className="api-stat-label">Requests</div>
+                        </div>
+                        <div className="api-stat">
+                          <div className="api-stat-value">{apiKey.rateLimit}/h</div>
+                          <div className="api-stat-label">Rate Limit</div>
+                        </div>
+                        <div className="api-stat">
+                          <div className="api-stat-value">{apiKey.created}</div>
+                          <div className="api-stat-label">Created</div>
+                        </div>
+                        <div className="api-stat">
+                          <div className="api-stat-value">
+                            {apiKey.lastUsed ? 
+                              new Date(apiKey.lastUsed).toLocaleDateString() : 
+                              'Never'
+                            }
+                          </div>
+                          <div className="api-stat-label">Last Used</div>
+                        </div>
+                      </div>
+
+                      <div className="api-key-actions">
+                        <button className="action-btn">
+                          <Settings size={14} />
+                          Configurar
+                        </button>
+                        {apiKey.status === 'active' ? (
+                          <button 
+                            className="action-btn"
+                            onClick={() => updateApiKeyStatus(apiKey.id, 'inactive')}
+                          >
+                            <Lock size={14} />
+                            Desactivar
+                          </button>
+                        ) : (
+                          <button 
+                            className="action-btn"
+                            onClick={() => updateApiKeyStatus(apiKey.id, 'active')}
+                          >
+                            <Unlock size={14} />
+                            Activar
+                          </button>
+                        )}
+                        <button 
+                          className="action-btn"
+                          style={{ color: '#ef4444', borderColor: '#fee2e2' }}
+                          onClick={() => deleteApiKey(apiKey.id)}
+                        >
+                          <Trash2 size={14} />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="config-section">
+                <h3 className="section-title">
+                  <Terminal size={20} />
+                  Endpoints Disponibles
+                </h3>
+
+                <div className="endpoints-grid">
+                  {['Data Sources', 'Workflows', 'Integrations', 'Analytics'].map((category) => (
+                    <div key={category}>
+                      <div className="endpoint-category">{category}</div>
+                      {apiEndpoints
+                        .filter(endpoint => endpoint.category === category)
+                        .map((endpoint, index) => (
+                          <div key={index} className="endpoint-item">
+                            <span 
+                              className="endpoint-method"
+                              style={{ 
+                                backgroundColor: getMethodColor(endpoint.method), 
+                                color: 'white' 
+                              }}
+                            >
+                              {endpoint.method}
+                            </span>
+                            <span className="endpoint-path">{endpoint.path}</span>
+                            <span className="endpoint-description">{endpoint.description}</span>
+                          </div>
+                        ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="config-section">
+                <h3 className="section-title">
+                  <Book size={20} />
+                  Documentación Rápida
+                </h3>
+                
+                <div className="info-panel">
+                  <div className="info-title">
+                    <Code size={16} />
+                    Autenticación
+                  </div>
+                  <div className="info-content">
+                    <strong>Header requerido:</strong><br />
+                    <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>
+                      Authorization: Bearer YOUR_API_KEY
+                    </code>
+                    <br /><br />
+                    <strong>Ejemplo de solicitud:</strong><br />
+                    <pre style={{ background: '#f1f5f9', padding: '12px', borderRadius: '6px', fontSize: '12px', overflow: 'auto' }}>
+{`curl -X GET "https://api.digitaltwin.platform/v1/data/sources" \\
+  -H "Authorization: Bearer dt_prod_sk_1a2b3c4d5e6f7g8h9i0j" \\
+  -H "Content-Type: application/json"`}
+                    </pre>
+                  </div>
+                </div>
+
+                <div className="info-panel">
+                  <div className="info-title">
+                    <BarChart3 size={16} />
+                    Rate Limiting
+                  </div>
+                  <div className="info-content">
+                    Los límites de velocidad se aplican por API Key y se basan en el entorno:
+                    <ul style={{ marginTop: '8px', paddingLeft: '16px' }}>
+                      <li><strong>Production:</strong> 1000 requests/hora</li>
+                      <li><strong>Development:</strong> 100 requests/hora</li>
+                      <li><strong>Testing:</strong> 50 requests/hora</li>
+                    </ul>
+                    Los headers de respuesta incluyen información sobre el límite actual.
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           <div className="action-buttons">
