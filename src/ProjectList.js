@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   Plus, Download, BarChart3, MapPin, Database, Workflow, Settings,
-  Factory, Truck, Building2
+  Factory, Truck, Building2, CreditCard, TrendingUp, Target, Users,
+  ShoppingCart, PieChart, Search, Headphones
 } from 'lucide-react';
 
 const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, onViewData, onViewWorkflow }) => {
@@ -28,9 +29,65 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
         icon: <Building2 size={18} />,
         color: '#10b981',
         bgColor: '#dcfce7'
+      },
+      billing: {
+        name: 'Facturación',
+        description: 'Gestión Financiera',
+        icon: <CreditCard size={18} />,
+        color: '#8b5cf6',
+        bgColor: '#ede9fe'
+      },
+      business: {
+        name: 'Negocio',
+        description: 'Estrategia y Análisis',
+        icon: <TrendingUp size={18} />,
+        color: '#06b6d4',
+        bgColor: '#cffafe'
+      },
+      marketing: {
+        name: 'Marketing',
+        description: 'Promoción y Ventas',
+        icon: <Target size={18} />,
+        color: '#ec4899',
+        bgColor: '#fce7f3'
+      },
+      hr: {
+        name: 'Recursos Humanos',
+        description: 'Gestión de Personal',
+        icon: <Users size={18} />,
+        color: '#84cc16',
+        bgColor: '#ecfccb'
+      },
+      sales: {
+        name: 'Ventas',
+        description: 'Canal Comercial',
+        icon: <ShoppingCart size={18} />,
+        color: '#f97316',
+        bgColor: '#fed7aa'
+      },
+      finance: {
+        name: 'Finanzas',
+        description: 'Análisis Financiero',
+        icon: <PieChart size={18} />,
+        color: '#6366f1',
+        bgColor: '#e0e7ff'
+      },
+      research: {
+        name: 'Investigación',
+        description: 'I+D+i',
+        icon: <Search size={18} />,
+        color: '#14b8a6',
+        bgColor: '#ccfbf1'
+      },
+      support: {
+        name: 'Soporte',
+        description: 'Atención al Cliente',
+        icon: <Headphones size={18} />,
+        color: '#ef4444',
+        bgColor: '#fee2e2'
       }
     };
-    return types[type];
+    return types[type] || types.manufacturing;
   };
 
   const getRiskLevelInfo = (level) => {
@@ -152,12 +209,14 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
           border-radius: 12px;
           border: 1px solid #e5e8eb;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          flex-wrap: wrap;
         }
 
         .filter-group {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          min-width: 180px;
         }
 
         .filter-label {
@@ -409,6 +468,11 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
           .project-metrics {
             grid-template-columns: 1fr 1fr;
           }
+
+          .header-stats {
+            flex-wrap: wrap;
+            gap: 16px;
+          }
         }
       `}</style>
 
@@ -471,6 +535,14 @@ const ProjectList = ({ projects, onNewProject, onSelectProject, onEditProject, o
               <option value="manufacturing">Manufactura</option>
               <option value="logistics">Logística</option>
               <option value="infrastructure">Infraestructura</option>
+              <option value="billing">Facturación</option>
+              <option value="business">Negocio</option>
+              <option value="marketing">Marketing</option>
+              <option value="hr">Recursos Humanos</option>
+              <option value="sales">Ventas</option>
+              <option value="finance">Finanzas</option>
+              <option value="research">Investigación</option>
+              <option value="support">Soporte</option>
             </select>
           </div>
           <div className="filter-group">

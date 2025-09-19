@@ -1,5 +1,9 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, AlertCircle, Factory, Truck, Building2 } from 'lucide-react';
+import { 
+  ArrowLeft, ArrowRight, AlertCircle, Factory, Truck, Building2,
+  CreditCard, TrendingUp, Target, Users, ShoppingCart, PieChart, 
+  Search, Headphones
+} from 'lucide-react';
 
 const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperationType, onNext, onBack }) => {
   // Función para obtener icono de tipo de operación
@@ -25,16 +29,88 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
         icon: <Building2 size={18} />,
         color: '#10b981',
         bgColor: '#dcfce7'
+      },
+      billing: {
+        name: 'Facturación',
+        description: 'Gestión Financiera',
+        icon: <CreditCard size={18} />,
+        color: '#8b5cf6',
+        bgColor: '#ede9fe'
+      },
+      business: {
+        name: 'Negocio',
+        description: 'Estrategia y Análisis',
+        icon: <TrendingUp size={18} />,
+        color: '#06b6d4',
+        bgColor: '#cffafe'
+      },
+      marketing: {
+        name: 'Marketing',
+        description: 'Promoción y Ventas',
+        icon: <Target size={18} />,
+        color: '#ec4899',
+        bgColor: '#fce7f3'
+      },
+      hr: {
+        name: 'Recursos Humanos',
+        description: 'Gestión de Personal',
+        icon: <Users size={18} />,
+        color: '#84cc16',
+        bgColor: '#ecfccb'
+      },
+      sales: {
+        name: 'Ventas',
+        description: 'Canal Comercial',
+        icon: <ShoppingCart size={18} />,
+        color: '#f97316',
+        bgColor: '#fed7aa'
+      },
+      finance: {
+        name: 'Finanzas',
+        description: 'Análisis Financiero',
+        icon: <PieChart size={18} />,
+        color: '#6366f1',
+        bgColor: '#e0e7ff'
+      },
+      research: {
+        name: 'Investigación',
+        description: 'I+D+i',
+        icon: <Search size={18} />,
+        color: '#14b8a6',
+        bgColor: '#ccfbf1'
+      },
+      support: {
+        name: 'Soporte',
+        description: 'Atención al Cliente',
+        icon: <Headphones size={18} />,
+        color: '#ef4444',
+        bgColor: '#fee2e2'
       }
     };
     return types[type];
   };
 
+  // Agrupar los tipos de operación en categorías
+  const operationCategories = [
+    {
+      title: 'Operaciones Core',
+      types: ['manufacturing', 'logistics', 'infrastructure']
+    },
+    {
+      title: 'Gestión Empresarial',
+      types: ['business', 'finance', 'billing', 'hr']
+    },
+    {
+      title: 'Cliente y Mercado',
+      types: ['sales', 'marketing', 'support', 'research']
+    }
+  ];
+
   return (
     <div className="new-project-container">
       <style jsx>{`
         .new-project-container {
-          max-width: 900px;
+          max-width: 1200px;
           margin: 0 auto;
           padding: 0 20px;
         }
@@ -126,15 +202,31 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
           margin-top: 6px;
         }
 
-        .operation-types {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
+        .operation-categories {
           margin-top: 20px;
         }
 
+        .operation-category {
+          margin-bottom: 32px;
+        }
+
+        .category-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1a1d21;
+          margin-bottom: 16px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #f1f5f9;
+        }
+
+        .operation-types {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 16px;
+        }
+
         .operation-type {
-          padding: 24px;
+          padding: 20px;
           border: 2px solid #e5e8eb;
           border-radius: 16px;
           cursor: pointer;
@@ -159,7 +251,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
 
         .operation-type:hover {
           border-color: var(--operation-color, #d0d5db);
-          transform: translateY(-4px);
+          transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
 
@@ -170,7 +262,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
         .operation-type.selected {
           border-color: var(--operation-color);
           background: var(--operation-bg-color);
-          transform: translateY(-4px);
+          transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
 
@@ -179,23 +271,23 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
         }
 
         .operation-icon {
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           color: var(--operation-color, #6b7684);
           display: flex;
           justify-content: center;
         }
 
         .operation-name {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
           color: #1a1d21;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .operation-desc {
-          font-size: 13px;
+          font-size: 12px;
           color: #6b7684;
-          line-height: 1.5;
+          line-height: 1.4;
         }
 
         .info-box {
@@ -263,6 +355,26 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
           transform: none;
           box-shadow: none;
         }
+
+        @media (max-width: 768px) {
+          .operation-types {
+            grid-template-columns: 1fr;
+          }
+          
+          .new-project-container {
+            padding: 0 16px;
+          }
+          
+          .form-container {
+            padding: 24px;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .operation-types {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          }
+        }
       `}</style>
 
       <div className="step-header">
@@ -297,27 +409,34 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
 
         <div className="form-section">
           <label className="form-label">Tipo de Operación</label>
-          <div className="operation-types">
-            {['manufacturing', 'logistics', 'infrastructure'].map((type) => {
-              const info = getOperationTypeInfo(type);
-              return (
-                <div
-                  key={type}
-                  className={`operation-type ${operationType === type ? 'selected' : ''}`}
-                  style={{
-                    '--operation-color': info.color,
-                    '--operation-bg-color': info.bgColor
-                  }}
-                  onClick={() => setOperationType(type)}
-                >
-                  <div className="operation-icon">
-                    {React.cloneElement(info.icon, { size: 32 })}
-                  </div>
-                  <div className="operation-name">{info.name}</div>
-                  <div className="operation-desc">{info.description}</div>
+          <div className="operation-categories">
+            {operationCategories.map((category, categoryIndex) => (
+              <div key={categoryIndex} className="operation-category">
+                <h3 className="category-title">{category.title}</h3>
+                <div className="operation-types">
+                  {category.types.map((type) => {
+                    const info = getOperationTypeInfo(type);
+                    return (
+                      <div
+                        key={type}
+                        className={`operation-type ${operationType === type ? 'selected' : ''}`}
+                        style={{
+                          '--operation-color': info.color,
+                          '--operation-bg-color': info.bgColor
+                        }}
+                        onClick={() => setOperationType(type)}
+                      >
+                        <div className="operation-icon">
+                          {React.cloneElement(info.icon, { size: 28 })}
+                        </div>
+                        <div className="operation-name">{info.name}</div>
+                        <div className="operation-desc">{info.description}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -329,6 +448,7 @@ const ProjectNameForm = ({ projectName, setProjectName, operationType, setOperat
               <p>
                 El sistema generará automáticamente un workflow personalizado basado en el tipo de operación seleccionada. 
                 Los datos se integrarán desde Excel y otras fuentes para crear una simulación en tiempo real del proyecto.
+                Cada tipo de operación incluye plantillas específicas con KPIs, métricas y procesos optimizados para su industria.
               </p>
             </div>
           </div>
