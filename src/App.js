@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { 
   BarChart3, FolderPlus, Settings, Users, Database, 
-  Bell, Search, Plus, ChevronDown, Menu, X 
+  Bell, Search, Plus, ChevronDown, Menu, X , Airplay
 } from 'lucide-react';
 
 // Importamos los componentes
@@ -9,7 +9,8 @@ import NavigationMenu from './NavigationMenu';
 import Dashboard from './Dashboard';
 import GestionProyectos from './GestionProyectos';
 import Configuracion from './Configuracion';
-import DataManagement from './DataManagement'; // NUEVO COMPONENTE
+import DataManagement from './DataManagement';
+import ReglaAutomatizacion from './ReglaAutomatizacion';
 
 const DTApp = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -35,11 +36,18 @@ const DTApp = () => {
       notifications: 2
     },
     { 
+      id: 'automation', 
+      label: 'Automatizaciones', 
+      icon: Airplay,
+      notifications: 0
+    },
+    { 
       id: 'configuration', 
       label: 'Configuración', 
       icon: Settings,
       notifications: 0
-    }
+    },
+
   ];
 
   const renderContent = () => {
@@ -52,6 +60,8 @@ const DTApp = () => {
         return <DataManagement />;
       case 'configuration':
         return <Configuracion />;
+      case 'automation':
+        return <ReglaAutomatizacion />;
       default:
         return <Dashboard />;
     }

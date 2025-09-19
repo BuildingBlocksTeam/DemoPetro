@@ -9,7 +9,7 @@ import {
   RotateCcw, Filter, RefreshCw, GitBranch, Workflow, Move,
   Hash, Calendar, ToggleLeft, FileText, Cloud, Server, Type,
   Save, Info, Users, Tag, Folder, PieChart,
-  AreaChart, Shuffle, Calculator, Brain, Beaker
+  AreaChart, Shuffle, Calculator, Brain, Beaker, Pause, Square
 } from 'lucide-react';
 
 import { 
@@ -18,8 +18,8 @@ import {
   Tooltip, Legend, ResponsiveContainer, Pie
 } from 'recharts';
 
- import AIChat from './AIChat';
- import DataSourceEditor from './DataSourceEditor';
+import AIChat from './AIChat';
+import DataSourceEditor from './DataSourceEditor';
 
 const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, draggingNode, setDraggingNode, dragOffset, setDragOffset }) => {
   // Estados del canvas (existentes)
@@ -29,7 +29,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   
   // Estados de paneles y modales (existentes + nuevos)
-  const [showNodeModal, setShowNodeModal] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [showConnectionData, setShowConnectionData] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
@@ -39,6 +38,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
   const [showDataSourceEditor, setShowDataSourceEditor] = useState(false);
   const [showWhatIfModal, setShowWhatIfModal] = useState(false);
   const [showChartsSection, setShowChartsSection] = useState(true);
+  const [showKpiModal, setShowKpiModal] = useState(false); // Nuevo modal para KPIs
   const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0, nodeId: null });
   
   // Estados de workflow (existentes)
@@ -60,6 +60,15 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
   
   // Estados de AI Chat (existentes)
   const [aiChatMinimized, setAiChatMinimized] = useState(true);
+  
+  // Estados para simulación (NUEVOS)
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationProgress, setSimulationProgress] = useState({});
+  const [completedConnections, setCompletedConnections] = useState(new Set());
+  const [currentSimulatingNode, setCurrentSimulatingNode] = useState(null);
+  
+  // Estado para detalles del nodo seleccionado (NUEVO)
+  const [selectedNodeDetails, setSelectedNodeDetails] = useState(null);
   
   // Estados de KPIs (existentes)
   const [kpis, setKpis] = useState([
@@ -131,45 +140,95 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         { field: 'timestamp', type: 'datetime', sample: '2024-01-15T10:30:00Z', description: 'Marca temporal' }
       ],
       icon: '📊'
-    },
-    {
-      id: 2,
-      name: 'Sensores IoT',
-      type: 'iot',
-      status: 'connected',
-      lastSync: new Date(Date.now() - 300000).toISOString(),
-      records: 15420,
-      size: '45 MB',
-      description: 'Datos en tiempo real de sensores',
-      schema: [
-        { field: 'sensor_id', type: 'string', sample: 'TEMP-001', description: 'ID del sensor' },
-        { field: 'temperature', type: 'number', sample: 24.5, description: 'Temperatura en Celsius' },
-        { field: 'humidity', type: 'percentage', sample: 65.2, description: 'Humedad relativa' },
-        { field: 'pressure', type: 'number', sample: 1013.25, description: 'Presión en mbar' },
-        { field: 'vibration', type: 'number', sample: 0.8, description: 'Nivel de vibración' }
-      ],
-      icon: '📡'
-    },
-    {
-      id: 3,
-      name: 'Sistema ERP',
-      type: 'database',
-      status: 'warning',
-      lastSync: new Date(Date.now() - 900000).toISOString(),
-      records: 8750,
-      size: '12 MB',
-      description: 'Datos financieros y de recursos',
-      schema: [
-        { field: 'cost_center', type: 'string', sample: 'CC-001', description: 'Centro de costos' },
-        { field: 'budget_used', type: 'currency', sample: 125000, description: 'Presupuesto utilizado' },
-        { field: 'resource_allocation', type: 'percentage', sample: 87.5, description: 'Asignación de recursos' },
-        { field: 'department', type: 'string', sample: 'Operations', description: 'Departamento' }
-      ],
-      icon: '🏢'
     }
   ]);
   
   const canvasRef = useRef(null);
+
+  // Función para inicializar el progreso de simulación
+  useEffect(() => {
+    const initialProgress = {};
+    workflowNodes.forEach(node => {
+      initialProgress[node.id] = 0;
+    });
+    setSimulationProgress(initialProgress);
+  }, [workflowNodes]);
+
+  // Función para iniciar/pausar simulación
+  const toggleSimulation = () => {
+    if (isSimulating) {
+      setIsSimulating(false);
+      setCurrentSimulatingNode(null);
+    } else {
+      // Reiniciar simulación
+      const resetProgress = {};
+      workflowNodes.forEach(node => {
+        resetProgress[node.id] = 0;
+      });
+      setSimulationProgress(resetProgress);
+      setCompletedConnections(new Set());
+      setIsSimulating(true);
+      
+      // Comenzar desde el primer nodo
+      if (workflowNodes.length > 0) {
+        setCurrentSimulatingNode(workflowNodes[0].id);
+      }
+    }
+  };
+
+  // Lógica de simulación
+  useEffect(() => {
+    if (!isSimulating || !currentSimulatingNode) return;
+
+    const interval = setInterval(() => {
+      setSimulationProgress(prev => {
+        const newProgress = { ...prev };
+        const currentProgress = newProgress[currentSimulatingNode] || 0;
+        
+        if (currentProgress < 100) {
+          newProgress[currentSimulatingNode] = Math.min(100, currentProgress + (100/60)); // 6 segundos = 60 incrementos
+        } else {
+          // Nodo completado, marcar conexiones y pasar al siguiente
+          const completedNode = workflowNodes.find(n => n.id === currentSimulatingNode);
+          if (completedNode) {
+            // Marcar conexiones salientes como completadas
+            const outgoingConnections = workflowConnections.filter(conn => conn.from === currentSimulatingNode);
+            setCompletedConnections(prev => {
+              const newCompleted = new Set(prev);
+              outgoingConnections.forEach(conn => newCompleted.add(conn.id));
+              return newCompleted;
+            });
+            
+            // Encontrar el siguiente nodo
+            const nextConnection = outgoingConnections[0];
+            if (nextConnection) {
+              const nextNode = workflowNodes.find(n => n.id === nextConnection.to);
+              if (nextNode && newProgress[nextNode.id] === 0) {
+                setCurrentSimulatingNode(nextNode.id);
+              } else {
+                // No hay más nodos, terminar simulación
+                setIsSimulating(false);
+                setCurrentSimulatingNode(null);
+              }
+            } else {
+              // No hay conexiones salientes, buscar siguiente nodo no completado
+              const nextUncompletedNode = workflowNodes.find(n => newProgress[n.id] === 0);
+              if (nextUncompletedNode) {
+                setCurrentSimulatingNode(nextUncompletedNode.id);
+              } else {
+                setIsSimulating(false);
+                setCurrentSimulatingNode(null);
+              }
+            }
+          }
+        }
+        
+        return newProgress;
+      });
+    }, 100); // Update every 100ms for smooth animation
+
+    return () => clearInterval(interval);
+  }, [isSimulating, currentSimulatingNode, workflowNodes, workflowConnections]);
 
   // Datos para gráficas (nuevos)
   const chartData = {
@@ -490,8 +549,8 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
 
   const handleNodeClick = (node) => {
     if (connectingMode) return;
+    setSelectedNodeDetails(node);
     onNodeSelect(node);
-    setShowNodeModal(true);
     setContextMenu({ show: false, x: 0, y: 0, nodeId: null });
   };
 
@@ -534,12 +593,18 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
       conn.from !== nodeId && conn.to !== nodeId
     ));
     setContextMenu({ show: false, x: 0, y: 0, nodeId: null });
+    if (selectedNodeDetails?.id === nodeId) {
+      setSelectedNodeDetails(null);
+    }
   };
 
   const updateNode = (nodeId, updates) => {
     setWorkflowNodes(nodes => 
       nodes.map(node => node.id === nodeId ? { ...node, ...updates } : node)
     );
+    if (selectedNodeDetails?.id === nodeId) {
+      setSelectedNodeDetails(prev => ({ ...prev, ...updates }));
+    }
   };
 
   const addKpi = () => {
@@ -612,12 +677,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
     setIsPanning(false);
   }, [setDraggingNode, setDragOffset]);
 
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    const scaleChange = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.3, Math.min(canvasScale * scaleChange, 3));
-    setCanvasScale(newScale);
-  }, [canvasScale]);
+  // REMOVIDO: handleWheel function - Ya no necesitamos zoom con scroll
 
   const zoomIn = () => setCanvasScale(prev => Math.min(prev * 1.2, 3));
   const zoomOut = () => setCanvasScale(prev => Math.max(prev / 1.2, 0.3));
@@ -633,22 +693,20 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
     }
   }, [draggingNode, isPanning, handleMouseMove, handleMouseUp]);
 
-  // Función para cerrar modal de nodo
-  const closeNodeModal = () => {
-    setShowNodeModal(false);
-    onNodeSelect(null);
-  };
-
-  // Componente de nodo (mantener existente)
+  // Componente de nodo (actualizado con simulación)
   const NodeComponent = ({ node, onClick }) => {
     const statusColors = getStatusColor(node.status);
     const IconComponent = getNodeIcon(node);
-    const isSelected = connectionStart === node.id || selectedNode?.id === node.id;
+    const isSelected = connectionStart === node.id || selectedNodeDetails?.id === node.id;
     const assignedKpis = kpis.filter(kpi => kpi.assignedNodes.includes(node.id));
+    
+    // Obtener progreso de simulación o progreso del nodo
+    const currentProgress = simulationProgress[node.id] || node.progress || 0;
+    const isCurrentlySimulating = currentSimulatingNode === node.id;
     
     return (
       <g 
-        className={`workflow-node ${draggingNode === node.id ? 'dragging' : ''} ${isSelected ? 'selected' : ''}`}
+        className={`workflow-node ${draggingNode === node.id ? 'dragging' : ''} ${isSelected ? 'selected' : ''} ${isCurrentlySimulating ? 'simulating' : ''}`}
         onMouseDown={(e) => handleMouseDown(e, node.id)}
         onClick={() => onClick && onClick(node)}
         onContextMenu={(e) => e.preventDefault()}
@@ -661,8 +719,8 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           height="140"
           rx="16"
           fill="white"
-          stroke={isSelected ? '#3b82f6' : statusColors.border}
-          strokeWidth={isSelected ? "3" : "2"}
+          stroke={isSelected ? '#3b82f6' : isCurrentlySimulating ? '#f59e0b' : statusColors.border}
+          strokeWidth={isSelected || isCurrentlySimulating ? "3" : "2"}
           filter="drop-shadow(0 6px 20px rgba(0, 0, 0, 0.15))"
         />
         
@@ -672,15 +730,15 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           width="200" 
           height="8"
           rx="8"
-          fill={statusColors.main}
+          fill={currentProgress === 100 ? '#10b981' : isCurrentlySimulating ? '#f59e0b' : statusColors.main}
         />
         
         <circle
           cx={node.position.x + 30}
           cy={node.position.y + 40}
           r="18"
-          fill={statusColors.bg}
-          stroke={statusColors.main}
+          fill={currentProgress === 100 ? '#ecfdf5' : isCurrentlySimulating ? '#fffbeb' : statusColors.bg}
+          stroke={currentProgress === 100 ? '#10b981' : isCurrentlySimulating ? '#f59e0b' : statusColors.main}
           strokeWidth="2"
         />
         
@@ -691,7 +749,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           height="18"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconComponent size={16} color={statusColors.main} />
+            <IconComponent size={16} color={currentProgress === 100 ? '#10b981' : isCurrentlySimulating ? '#f59e0b' : statusColors.main} />
           </div>
         </foreignObject>
         
@@ -715,7 +773,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           textTransform="uppercase"
           fontWeight="600"
         >
-          {node.type} • {node.status}
+          {node.type} • {currentProgress === 100 ? 'Completado' : isCurrentlySimulating ? 'En Progreso' : 'Pendiente'}
         </text>
         
         <text
@@ -748,21 +806,21 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         <rect
           x={node.position.x + 16} 
           y={node.position.y + 100}
-          width={168 * (node.progress / 100)} 
+          width={168 * (currentProgress / 100)} 
           height="8"
           rx="4"
-          fill={statusColors.main}
+          fill={currentProgress === 100 ? '#10b981' : isCurrentlySimulating ? '#f59e0b' : statusColors.main}
         />
         
         <text
           x={node.position.x + 100} 
           y={node.position.y + 125}
           fontSize="11"
-          fill={statusColors.text}
+          fill={currentProgress === 100 ? '#10b981' : isCurrentlySimulating ? '#f59e0b' : statusColors.text}
           textAnchor="middle"
           fontWeight="700"
         >
-          {node.progress}%
+          {Math.round(currentProgress)}%
         </text>
         
         {assignedKpis.slice(0, 3).map((kpi, index) => (
@@ -785,6 +843,19 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
             rx="6"
             fill="#ef4444"
           />
+        )}
+
+        {/* Indicador de simulación activa */}
+        {isCurrentlySimulating && (
+          <circle
+            cx={node.position.x + 185}
+            cy={node.position.y + 60}
+            r="6"
+            fill="#f59e0b"
+            opacity="0.8"
+          >
+            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.5s" repeatCount="indefinite" />
+          </circle>
         )}
       </g>
     );
@@ -816,7 +887,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
 
         .canvas-header {
           background: white;
-          border-bottom: 1px solid #e2e8f0;
           padding: 32px 36px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
           flex-shrink: 0;
@@ -901,41 +971,24 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           background: #2563eb;
         }
 
-        .canvas-stats {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 36px;
-          padding: 8px 0;
+        .action-btn.danger {
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
         }
 
-        .canvas-stat {
-          text-align: center;
-          padding: 20px 0;
-          background: linear-gradient(135deg, #f8fafc, white);
-          border-radius: 12px;
-          border: 1px solid #e5e8eb;
-          transition: all 0.2s ease;
+        .action-btn.danger:hover {
+          background: #dc2626;
         }
 
-        .canvas-stat:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .action-btn.success {
+          background: #10b981;
+          color: white;
+          border-color: #10b981;
         }
 
-        .canvas-stat-value {
-          font-size: 28px;
-          font-weight: 900;
-          color: #1e293b;
-          margin-bottom: 8px;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .canvas-stat-label {
-          font-size: 12px;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          font-weight: 700;
+        .action-btn.success:hover {
+          background: #059669;
         }
 
         .canvas-area {
@@ -1049,6 +1102,10 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.6));
         }
 
+        .workflow-node.simulating {
+          filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.5));
+        }
+
         .connection-line {
           stroke: #94a3b8;
           strokeWidth: 3;
@@ -1073,6 +1130,14 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           cursor: pointer;
         }
 
+        .connection-completed {
+          stroke: #10b981;
+          strokeWidth: 4;
+          fill: none;
+          cursor: pointer;
+          strokeDasharray: none;
+        }
+
         /* Nueva sección de gráficas */
         .charts-section {
           flex: 0 0 auto;
@@ -1085,7 +1150,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
 
         .charts-header {
           padding: 20px 24px;
-          border-bottom: 1px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -1153,102 +1217,107 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           gap: 8px;
         }
 
-        /* Modal mejorado para detalles de nodo */
-        .node-modal-overlay {
-          position: fixed;
+        /* NUEVO: Sidebar para detalles de nodo */
+        .details-sidebar {
+          width: 350px;
+          background: white;
+          border-left: 1px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          flex-shrink: 0;
+          position: sticky;
           top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
-          z-index: 1000;
+          height: 100vh;
+          box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+          z-index: 10;
+        }
+
+        .sidebar-header {
+          padding: 20px;
+          background: linear-gradient(135deg, #1e293b, #334155);
+          color: white;
+        }
+
+        .sidebar-title {
+          font-size: 16px;
+          font-weight: 700;
+          margin: 0;
           display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 10px;
+        }
+
+        .sidebar-content {
+          flex: 1;
+          overflow-y: auto;
           padding: 20px;
         }
 
-        .node-modal-content {
-          background: white;
-          border-radius: 16px;
-          padding: 0;
-          max-width: 1000px;
-          width: 100%;
-          max-height: 80vh;
-          overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        .empty-state {
+          text-align: center;
+          color: #6b7280;
+          padding: 60px 20px;
           display: flex;
           flex-direction: column;
-        }
-
-        .node-modal-header {
-          background: linear-gradient(135deg, #1e293b, #334155);
-          color: white;
-          padding: 24px;
-          display: flex;
-          justify-content: space-between;
           align-items: center;
-        }
-
-        .node-modal-title {
-          font-size: 20px;
-          font-weight: 700;
-          margin: 0;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .node-modal-body {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-        }
-
-        .node-section {
-          display: flex;
-          flex-direction: column;
           gap: 16px;
         }
 
-        .node-section-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: #1a1d21;
-          margin: 0;
-          padding-bottom: 8px;
-          border-bottom: 2px solid #e5e8eb;
+        .empty-state-icon {
+          width: 60px;
+          height: 60px;
+          background: #f3f4f6;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
         }
 
-        .metrics-grid-modal {
+        .metrics-section {
+          margin-bottom: 24px;
+        }
+
+        .section-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1a1d21;
+          margin: 0 0 12px 0;
+          padding-bottom: 6px;
+          border-bottom: 1px solid #e5e8eb;
+        }
+
+        .metrics-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 12px;
         }
 
-        .metric-card {
+        .metric-card-small {
           background: #f8fafc;
           border: 1px solid #e5e8eb;
           border-radius: 8px;
-          padding: 16px;
+          padding: 12px;
+          text-align: center;
         }
 
-        .metric-value-large {
-          font-size: 24px;
+        .metric-value {
+          font-size: 18px;
           font-weight: 800;
           color: #1a1d21;
           margin-bottom: 4px;
         }
 
-        .metric-label {
-          font-size: 12px;
+        .metric-label-small {
+          font-size: 11px;
           color: #6b7280;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+        }
+
+        .properties-section {
+          margin-bottom: 24px;
         }
 
         .properties-list {
@@ -1266,15 +1335,19 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         }
 
         .property-label {
-          font-size: 13px;
+          font-size: 12px;
           color: #6b7280;
           font-weight: 600;
         }
 
         .property-value {
-          font-size: 13px;
+          font-size: 12px;
           color: #1a1d21;
           font-weight: 600;
+        }
+
+        .logs-section {
+          margin-bottom: 24px;
         }
 
         .logs-container {
@@ -1283,11 +1356,12 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         }
 
         .log-entry {
-          padding: 12px;
+          padding: 10px;
           background: #f8fafc;
-          border-left: 4px solid #3b82f6;
-          border-radius: 0 8px 8px 0;
+          border-left: 3px solid #3b82f6;
+          border-radius: 0 6px 6px 0;
           margin-bottom: 8px;
+          font-size: 12px;
         }
 
         .log-header {
@@ -1298,19 +1372,394 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         }
 
         .log-time {
-          font-size: 11px;
+          font-size: 10px;
           color: #6b7280;
         }
 
         .log-user {
-          font-size: 11px;
+          font-size: 10px;
           color: #3b82f6;
           font-weight: 600;
         }
 
         .log-message {
-          font-size: 13px;
+          font-size: 12px;
           color: #1a1d21;
+        }
+
+        /* Modal styles (mantener estilos existentes pero optimizados) */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          padding: 28px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #e5e8eb;
+        }
+
+        .modal-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1a1d21;
+          margin: 0;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          padding: 6px;
+          cursor: pointer;
+          color: #6b7280;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        /* Modal para KPIs */
+        .kpi-modal-content {
+          max-width: 900px;
+        }
+
+        .kpi-modal-body {
+          max-height: 70vh;
+          overflow-y: auto;
+        }
+
+        .kpis-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .kpi-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          transition: all 0.2s ease;
+        }
+
+        .kpi-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-item-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+
+        .kpi-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .kpi-actions {
+          display: flex;
+          gap: 4px;
+        }
+
+        .kpi-action-btn {
+          padding: 4px;
+          border: 1px solid #e2e8f0;
+          border-radius: 4px;
+          background: white;
+          cursor: pointer;
+          color: #6b7280;
+          transition: all 0.2s ease;
+        }
+
+        .kpi-action-btn:hover {
+          background: #f8fafc;
+          color: #1f2937;
+        }
+
+        .kpi-value-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .kpi-value {
+          font-size: 24px;
+          font-weight: 800;
+          color: #1f2937;
+        }
+
+        .kpi-unit {
+          font-size: 14px;
+          color: #6b7280;
+          margin-left: 4px;
+        }
+
+        .kpi-change {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .kpi-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+
+        .kpi-description {
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 10px;
+        }
+
+        .add-kpi-btn {
+          padding: 12px 24px;
+          border: 2px dashed #cbd5e1;
+          border-radius: 12px;
+          background: #f9fafb;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: #6b7280;
+          font-weight: 600;
+          grid-column: 1 / -1;
+        }
+
+        .add-kpi-btn:hover {
+          border-color: #3b82f6;
+          background: #f8fafc;
+          color: #3b82f6;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .form-group.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .form-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .form-input, .form-textarea, .form-select {
+          padding: 10px 12px;
+          border: 1px solid #e5e8eb;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+
+        .node-types-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .node-type-btn {
+          padding: 16px;
+          border: 1px solid #e5e8eb;
+          border-radius: 10px;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          text-align: center;
+        }
+
+        .node-type-btn:hover {
+          border-color: #3b82f6;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .node-type-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .node-type-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .node-type-desc {
+          font-size: 11px;
+          color: #6b7280;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 24px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e8eb;
+        }
+
+        .btn {
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: none;
+        }
+
+        .btn-primary {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .btn-primary:hover {
+          background: #2563eb;
+        }
+
+        .btn-secondary {
+          background: white;
+          color: #374151;
+          border: 1px solid #e5e8eb;
+        }
+
+        .btn-secondary:hover {
+          background: #f3f4f6;
+        }
+
+        .context-menu {
+          position: fixed;
+          background: white;
+          border: 1px solid #e5e8eb;
+          border-radius: 10px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+          min-width: 180px;
+          overflow: hidden;
+        }
+
+        .context-menu-item {
+          padding: 12px 16px;
+          font-size: 14px;
+          color: #374151;
+          cursor: pointer;
+          transition: background 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .context-menu-item:hover {
+          background: #f8fafc;
+        }
+
+        .context-menu-item.danger {
+          color: #ef4444;
+        }
+
+        .context-menu-item.danger:hover {
+          background: #fef2f2;
+        }
+
+        /* Resto de estilos existentes */
+        .back-button {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 12px 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          z-index: 30;
+        }
+
+        .back-button:hover {
+          background: #f8fafc;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         /* Modal para What-If */
@@ -1519,438 +1968,9 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           justify-content: space-between;
         }
 
-        /* Resto de estilos existentes */
-        .back-button {
-          position: absolute;
-          top: 20px;
-          left: 20px;
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 12px 20px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          color: #374151;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          z-index: 30;
-        }
-
-        .back-button:hover {
-          background: #f8fafc;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .kpi-sidebar {
-          width: 320px;
-          background: white;
-          border-left: 1px solid #e2e8f0;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          flex-shrink: 0;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
-          z-index: 10;
-        }
-
-        .sidebar-header {
-          padding: 20px;
-          justify-content: space-between;
-          display: flex;
-          align-items: center;
-          background: linear-gradient(135deg, #1e293b, #334155);
-          color: white;
-        }
-
-
-        .add-kpi-btn {
-          padding: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 6px;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .add-kpi-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        .kpis-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 16px;
-        }
-
-        .kpi-item {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 16px;
-          margin-bottom: 12px;
-          transition: all 0.2s ease;
-        }
-
-        .kpi-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .kpi-item-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-
-        .kpi-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-        }
-
-        .kpi-actions {
-          display: flex;
-          gap: 4px;
-        }
-
-        .kpi-action-btn {
-          padding: 4px;
-          border: 1px solid #e2e8f0;
-          border-radius: 4px;
-          background: white;
-          cursor: pointer;
-          color: #6b7280;
-          transition: all 0.2s ease;
-        }
-
-        .kpi-action-btn:hover {
-          background: #f8fafc;
-          color: #1f2937;
-        }
-
-        .kpi-value-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-
-        .kpi-value {
-          font-size: 24px;
-          font-weight: 800;
-          color: #1f2937;
-        }
-
-        .kpi-unit {
-          font-size: 14px;
-          color: #6b7280;
-          margin-left: 4px;
-        }
-
-        .kpi-change {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .kpi-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: #374151;
-          margin-bottom: 8px;
-        }
-
-        .kpi-description {
-          font-size: 12px;
-          color: #6b7280;
-          margin-bottom: 10px;
-        }
-
-        .kpi-assignments {
-          font-size: 11px;
-        }
-
-        .assignments-label {
-          color: #6b7280;
-          font-weight: 600;
-          display: block;
-          margin-bottom: 6px;
-        }
-
-        .assigned-nodes {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-
-        .node-tag {
-          background: #e0f2fe;
-          color: #0369a1;
-          padding: 3px 6px;
-          border-radius: 4px;
-          font-size: 10px;
-          font-weight: 600;
-        }
-
-        .no-assignments {
-          color: #9ca3af;
-          font-style: italic;
-        }
-
-        .assign-btn {
-          background: #f3f4f6;
-          border: 1px solid #d1d5db;
-          border-radius: 5px;
-          padding: 4px 8px;
-          font-size: 10px;
-          color: #374151;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .assign-btn:hover {
-          background: #e5e7eb;
-        }
-
-        /* Modal styles (mantener estilos existentes pero optimizados) */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: 16px;
-          padding: 28px;
-          max-width: 600px;
-          width: 100%;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #e5e8eb;
-        }
-
-        .modal-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #1a1d21;
-          margin: 0;
-        }
-
-        .close-btn {
-          background: none;
-          border: none;
-          padding: 6px;
-          cursor: pointer;
-          color: #6b7280;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-        }
-
-        .close-btn:hover {
-          background: #f3f4f6;
-          color: #374151;
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 24px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .form-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: #374151;
-        }
-
-        .form-input, .form-textarea, .form-select {
-          padding: 10px 12px;
-          border: 1px solid #e5e8eb;
-          border-radius: 8px;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-
-        .form-input:focus, .form-textarea:focus, .form-select:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .form-textarea {
-          min-height: 80px;
-          resize: vertical;
-        }
-
-        .node-types-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          margin-bottom: 24px;
-        }
-
-        .node-type-btn {
-          padding: 16px;
-          border: 1px solid #e5e8eb;
-          border-radius: 10px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          text-align: center;
-        }
-
-        .node-type-btn:hover {
-          border-color: #3b82f6;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .node-type-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-        }
-
-        .node-type-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #374151;
-        }
-
-        .node-type-desc {
-          font-size: 11px;
-          color: #6b7280;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-          margin-top: 24px;
-          padding-top: 20px;
-          border-top: 1px solid #e5e8eb;
-        }
-
-        .btn {
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: none;
-        }
-
-        .btn-primary {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .btn-primary:hover {
-          background: #2563eb;
-        }
-
-        .btn-secondary {
-          background: white;
-          color: #374151;
-          border: 1px solid #e5e8eb;
-        }
-
-        .btn-secondary:hover {
-          background: #f3f4f6;
-        }
-
-        .context-menu {
-          position: fixed;
-          background: white;
-          border: 1px solid #e5e8eb;
-          border-radius: 10px;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-          z-index: 1000;
-          min-width: 180px;
-          overflow: hidden;
-        }
-
-        .context-menu-item {
-          padding: 12px 16px;
-          font-size: 14px;
-          color: #374151;
-          cursor: pointer;
-          transition: background 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .context-menu-item:hover {
-          background: #f8fafc;
-        }
-
-        .context-menu-item.danger {
-          color: #ef4444;
-        }
-
-        .context-menu-item.danger:hover {
-          background: #fef2f2;
-        }
-
         @media (max-width: 1400px) {
-          .kpi-sidebar {
-            width: 280px;
+          .details-sidebar {
+            width: 300px;
           }
           .charts-grid {
             grid-template-columns: 1fr;
@@ -1958,15 +1978,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         }
 
         @media (max-width: 1024px) {
-          .canvas-stats {
-            grid-template-columns: repeat(3, 1fr);
-          }
-          
           .form-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .node-modal-body {
             grid-template-columns: 1fr;
           }
 
@@ -2005,6 +2017,14 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                 </button>
                 <button 
                   className="action-btn"
+                  onClick={() => setShowKpiModal(true)}
+                  title="Ver KPIs del Sistema"
+                >
+                  <BarChart3 size={16} />
+                  KPIs
+                </button>
+                <button 
+                  className="action-btn"
                   onClick={() => setShowWhatIfModal(true)}
                   title="Análisis What-If"
                 >
@@ -2012,11 +2032,12 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                   What-If
                 </button>
                 <button 
-                  className="action-btn primary"
-                  title="Guardar Cambios"
+                  className={`action-btn ${isSimulating ? 'danger' : 'success'}`}
+                  onClick={toggleSimulation}
+                  title={isSimulating ? 'Pausar Simulación' : 'Iniciar Simulación'}
                 >
-                  <Save size={16} />
-                  Guardar
+                  {isSimulating ? <Pause size={16} /> : <Play size={16} />}
+                  {isSimulating ? 'Pausar' : 'Iniciar'}
                 </button>
               </div>
             </div>
@@ -2057,7 +2078,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
               viewBox="0 0 1600 1000" 
               preserveAspectRatio="xMidYMid meet"
               onMouseDown={handleCanvasMouseDown}
-              onWheel={handleWheel}
             >
               <defs>
                 <marker id="arrowhead" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto">
@@ -2083,29 +2103,17 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                   const x2 = toNode.position.x;
                   const y2 = toNode.position.y + 70;
                   
-                  const progressLength = conn.progress || 0;
-                  const x1Progress = x1 + (x2 - x1) * (progressLength / 100);
-                  const y1Progress = y1 + (y2 - y1) * (progressLength / 100);
+                  const isCompleted = completedConnections.has(conn.id);
 
                   return (
                     <g key={index}>
                       <line
                         x1={x1} y1={y1}
                         x2={x2} y2={y2}
-                        className="connection-line"
-                        markerEnd="url(#arrowhead)"
+                        className={isCompleted ? "connection-completed" : "connection-line"}
+                        markerEnd={isCompleted ? "url(#arrowhead-progress)" : "url(#arrowhead)"}
                         onClick={() => handleConnectionClick(conn)}
                       />
-                      
-                      {progressLength > 0 && (
-                        <line
-                          x1={x1} y1={y1}
-                          x2={x1Progress} y2={y1Progress}
-                          className="connection-progress"
-                          markerEnd={progressLength === 100 ? "url(#arrowhead-progress)" : "none"}
-                          onClick={() => handleConnectionClick(conn)}
-                        />
-                      )}
                     </g>
                   );
                 })}
@@ -2312,88 +2320,107 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         </div>
       </div>
 
-      {/* KPI Sidebar */}
-      <div className="kpi-sidebar">
+      {/* NUEVO: Sidebar para detalles de nodo */}
+      <div className="details-sidebar">
         <div className="sidebar-header">
-          <h3 className="sidebar-title">KPIs del Sistema</h3>
-          <button className="add-kpi-btn" onClick={addKpi}>
-            <Plus size={16} />
-          </button>
+          <h3 className="sidebar-title">
+            <Eye size={18} />
+            Detalles del Nodo
+          </h3>
         </div>
         
-        <div className="kpis-list">
-          {kpis.map((kpi) => {
-            const IconComponent = getIconComponent(kpi.icon);
-            const TrendIcon = kpi.trend === 'up' ? TrendingUp : TrendingDown;
-            
-            return (
-              <div key={kpi.id} className="kpi-item">
-                <div className="kpi-item-header">
-                  <div className="kpi-icon" style={{ background: kpi.color }}>
-                    <IconComponent size={14} />
-                  </div>
-                  <div className="kpi-actions">
-                    <button 
-                      className="kpi-action-btn"
-                      onClick={() => {
-                        setEditingKpi(kpi);
-                        setShowEditKpiModal(true);
-                      }}
-                    >
-                      <Edit3 size={12} />
-                    </button>
-                    <button 
-                      className="kpi-action-btn"
-                      onClick={() => deleteKpi(kpi.id)}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="kpi-value-section">
-                  <div className="kpi-value">
-                    {kpi.value}
-                    <span className="kpi-unit">{kpi.unit}</span>
-                  </div>
-                  <div className="kpi-change" style={{ color: kpi.trend === 'up' ? '#10b981' : '#ef4444' }}>
-                    <TrendIcon size={12} />
-                    {Math.abs(kpi.change)}%
-                  </div>
-                </div>
-                
-                <div className="kpi-name">{kpi.name}</div>
-                <div className="kpi-description">{kpi.description}</div>
-                
-                <div className="kpi-assignments">
-                  <span className="assignments-label">Asignado a:</span>
-                  <div className="assigned-nodes">
-                    {kpi.assignedNodes.length === 0 ? (
-                      <span className="no-assignments">Sin asignar</span>
-                    ) : (
-                      kpi.assignedNodes.map(nodeId => {
-                        const node = workflowNodes.find(n => n.id === nodeId);
-                        return node ? (
-                          <span key={nodeId} className="node-tag">
-                            {node.name.length > 10 ? node.name.substring(0, 8) + '...' : node.name}
-                          </span>
-                        ) : null;
-                      })
-                    )}
-                  </div>
-                  <button 
-                    className="assign-btn"
-                    onClick={() => {
-                      setKpiToAssign(kpi.id);
-                      setShowKpiAssignModal(true);
-                    }}
-                  >
-                    Asignar Nodos
-                  </button>
+        <div className="sidebar-content">
+          {selectedNodeDetails ? (
+            <>
+              <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <h4 style={{ 
+                  margin: '0 0 8px 0', 
+                  fontSize: '16px', 
+                  fontWeight: '700',
+                  color: '#1a1d21'
+                }}>
+                  {selectedNodeDetails.name}
+                </h4>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#6b7280',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  fontWeight: '600'
+                }}>
+                  {selectedNodeDetails.type} • {simulationProgress[selectedNodeDetails.id] === 100 ? 'Completado' : 
+                    currentSimulatingNode === selectedNodeDetails.id ? 'En Progreso' : 'Pendiente'}
                 </div>
               </div>
-            );
-          })}
+
+              <div className="metrics-section">
+                <h4 className="section-title">Métricas de Rendimiento</h4>
+                <div className="metrics-grid">
+                  {getNodeData(selectedNodeDetails.id).metrics.slice(0, 6).map((metric, index) => (
+                    <div key={index} className="metric-card-small">
+                      <div className="metric-value">
+                        {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+                        <span style={{ fontSize: '10px', marginLeft: '2px', color: '#6b7280' }}>
+                          {metric.unit}
+                        </span>
+                      </div>
+                      <div className="metric-label-small">{metric.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="properties-section">
+                <h4 className="section-title">Propiedades</h4>
+                <div className="properties-list">
+                  {Object.entries(getNodeData(selectedNodeDetails.id).properties).slice(0, 8).map(([key, value]) => (
+                    <div key={key} className="property-row">
+                      <span className="property-label">{key}</span>
+                      <span className="property-value">
+                        {Array.isArray(value) ? value.slice(0, 2).join(', ') + (value.length > 2 ? '...' : '') : value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="logs-section">
+                <h4 className="section-title">Registro de Eventos</h4>
+                <div className="logs-container">
+                  {getNodeData(selectedNodeDetails.id).logs.slice(0, 5).map((log, index) => (
+                    <div key={index} className="log-entry">
+                      <div className="log-header">
+                        <span className="log-time">
+                          {new Date(log.timestamp).toLocaleString('es-ES', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit'
+                          })}
+                        </span>
+                        <span className="log-user">{log.user}</span>
+                      </div>
+                      <div className="log-message">{log.event}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <Eye size={24} />
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#374151' }}>
+                  Selecciona un nodo
+                </h4>
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  Haz clic en cualquier nodo del canvas para ver sus detalles y métricas en tiempo real
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2406,7 +2433,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         Volver al Dashboard
       </button>
 
-      {/* AI Chat Component - AGREGAR AQUÍ */}
+      {/* AI Chat Component */}
       <AIChat 
         workflow={workflowData}
         isMinimized={aiChatMinimized}
@@ -2414,6 +2441,7 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         onClose={() => setAiChatMinimized(true)}
       />
 
+      {/* Data Source Editor Modal */}
       {showDataSourceEditor && (
         <div className="modal-overlay">
           <DataSourceEditor 
@@ -2430,7 +2458,135 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
         </div>
       )}
 
-      {/* Nuevo Modal Mejorado de What-If Scenarios */}
+      {/* NUEVO: Modal de KPIs */}
+      {showKpiModal && (
+        <div className="modal-overlay">
+          <div className="modal-content kpi-modal-content">
+            <div className="modal-header">
+              <h3 className="modal-title">
+                <BarChart3 size={20} />
+                KPIs del Sistema
+              </h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowKpiModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="kpi-modal-body">
+              <div className="kpis-grid">
+                {kpis.map((kpi) => {
+                  const IconComponent = getIconComponent(kpi.icon);
+                  const TrendIcon = kpi.trend === 'up' ? TrendingUp : TrendingDown;
+                  
+                  return (
+                    <div key={kpi.id} className="kpi-item">
+                      <div className="kpi-item-header">
+                        <div className="kpi-icon" style={{ background: kpi.color }}>
+                          <IconComponent size={14} />
+                        </div>
+                        <div className="kpi-actions">
+                          <button 
+                            className="kpi-action-btn"
+                            onClick={() => {
+                              setEditingKpi(kpi);
+                              setShowEditKpiModal(true);
+                            }}
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                          <button 
+                            className="kpi-action-btn"
+                            onClick={() => deleteKpi(kpi.id)}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="kpi-value-section">
+                        <div className="kpi-value">
+                          {kpi.value}
+                          <span className="kpi-unit">{kpi.unit}</span>
+                        </div>
+                        <div className="kpi-change" style={{ color: kpi.trend === 'up' ? '#10b981' : '#ef4444' }}>
+                          <TrendIcon size={12} />
+                          {Math.abs(kpi.change)}%
+                        </div>
+                      </div>
+                      
+                      <div className="kpi-name">{kpi.name}</div>
+                      <div className="kpi-description">{kpi.description}</div>
+                      
+                      <div style={{ fontSize: '11px', marginTop: '12px' }}>
+                        <span style={{ color: '#6b7280', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                          Asignado a:
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                          {kpi.assignedNodes.length === 0 ? (
+                            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Sin asignar</span>
+                          ) : (
+                            kpi.assignedNodes.map(nodeId => {
+                              const node = workflowNodes.find(n => n.id === nodeId);
+                              return node ? (
+                                <span key={nodeId} style={{
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  padding: '3px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600'
+                                }}>
+                                  {node.name.length > 10 ? node.name.substring(0, 8) + '...' : node.name}
+                                </span>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setKpiToAssign(kpi.id);
+                            setShowKpiAssignModal(true);
+                          }}
+                          style={{
+                            background: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '5px',
+                            padding: '4px 8px',
+                            fontSize: '10px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Asignar Nodos
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                <button className="add-kpi-btn" onClick={addKpi}>
+                  <Plus size={16} />
+                  Añadir Nuevo KPI
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowKpiModal(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* What-If Modal */}
       {showWhatIfModal && (
         <div className="whatif-modal-overlay">
           <div className="whatif-modal-content">
@@ -2704,93 +2860,6 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
           >
             <Trash2 size={16} />
             Eliminar
-          </div>
-        </div>
-      )}
-
-      {/* Modal Mejorado de Detalles de Nodo con botón de cierre funcional */}
-      {showNodeModal && selectedNode && (
-        <div className="node-modal-overlay" onClick={closeNodeModal}>
-          <div className="node-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="node-modal-header">
-              <h3 className="node-modal-title">
-                {(() => {
-                  const IconComponent = getNodeIcon(selectedNode);
-                  return <IconComponent size={20} />;
-                })()}
-                {selectedNode.name}
-              </h3>
-              <button 
-                className="close-btn"
-                onClick={closeNodeModal}
-                style={{ color: 'white' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="node-modal-body">
-              <div className="node-section">
-                <h4 className="node-section-title">Métricas de Rendimiento</h4>
-                <div className="metrics-grid-modal">
-                  {getNodeData(selectedNode.id).metrics.map((metric, index) => (
-                    <div key={index} className="metric-card">
-                      <div className="metric-value-large">
-                        {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
-                        <span style={{ fontSize: '14px', marginLeft: '4px', color: '#6b7280' }}>
-                          {metric.unit}
-                        </span>
-                      </div>
-                      <div className="metric-label">{metric.name}</div>
-                      {metric.target && (
-                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                          Objetivo: {metric.target}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <h4 className="node-section-title" style={{ marginTop: '24px' }}>Propiedades</h4>
-                <div className="properties-list">
-                  {Object.entries(getNodeData(selectedNode.id).properties).map(([key, value]) => (
-                    <div key={key} className="property-row">
-                      <span className="property-label">{key}</span>
-                      <span className="property-value">
-                        {Array.isArray(value) ? value.join(', ') : value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="node-section">
-                <h4 className="node-section-title">Datos en Tiempo Real</h4>
-                <div className="properties-list">
-                  {Object.entries(getNodeData(selectedNode.id).realTimeData).map(([key, value]) => (
-                    <div key={key} className="property-row">
-                      <span className="property-label">{key}</span>
-                      <span className="property-value">{value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <h4 className="node-section-title" style={{ marginTop: '24px' }}>Registro de Eventos</h4>
-                <div className="logs-container">
-                  {getNodeData(selectedNode.id).logs.slice(0, 8).map((log, index) => (
-                    <div key={index} className="log-entry">
-                      <div className="log-header">
-                        <span className="log-time">
-                          {new Date(log.timestamp).toLocaleString('es-ES')}
-                        </span>
-                        <span className="log-user">{log.user}</span>
-                      </div>
-                      <div className="log-message">{log.event}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -3212,35 +3281,94 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                 <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1a1d21' }}>
                   Métricas de Rendimiento
                 </h4>
-                <div className="metrics-grid-modal">
-                  <div className="metric-card">
-                    <div className="metric-value-large">
-                      {(() => {
-                        const data = getNodeData('default'); // Using default data function
-                        return Math.floor(Math.random() * 1000) + 500;
-                      })()}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e5e8eb',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '800',
+                      color: '#1a1d21',
+                      marginBottom: '4px'
+                    }}>
+                      {Math.floor(Math.random() * 1000) + 500}
                     </div>
-                    <div className="metric-label">Throughput/min</div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      fontWeight: '600',
+                      textTransform: 'uppercase'
+                    }}>Throughput/min</div>
                   </div>
-                  <div className="metric-card">
-                    <div className="metric-value-large">
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e5e8eb',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '800',
+                      color: '#1a1d21',
+                      marginBottom: '4px'
+                    }}>
                       {Math.floor(Math.random() * 50) + 20}ms
                     </div>
-                    <div className="metric-label">Latencia</div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      fontWeight: '600',
+                      textTransform: 'uppercase'
+                    }}>Latencia</div>
                   </div>
-                  <div className="metric-card">
-                    <div className="metric-value-large">
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e5e8eb',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '800',
+                      color: '#1a1d21',
+                      marginBottom: '4px'
+                    }}>
                       {(Math.random() * 0.5).toFixed(2)}%
                     </div>
-                    <div className="metric-label">Tasa Error</div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      fontWeight: '600',
+                      textTransform: 'uppercase'
+                    }}>Tasa Error</div>
                   </div>
-                  <div className="metric-card">
-                    <div className="metric-value-large" style={{ 
-                      color: Math.random() > 0.2 ? '#10b981' : '#ef4444' 
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e5e8eb',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '800',
+                      color: Math.random() > 0.2 ? '#10b981' : '#ef4444',
+                      marginBottom: '4px'
                     }}>
                       {Math.random() > 0.2 ? 'Sano' : 'Alerta'}
                     </div>
-                    <div className="metric-label">Estado</div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      fontWeight: '600',
+                      textTransform: 'uppercase'
+                    }}>Estado</div>
                   </div>
                 </div>
               </div>
@@ -3249,22 +3377,46 @@ const WorkflowCanvas = ({ workflow, selectedNode, onNodeSelect, onBack, dragging
                 <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1a1d21' }}>
                   Configuración
                 </h4>
-                <div className="properties-list">
-                  <div className="property-row">
-                    <span className="property-label">Protocolo</span>
-                    <span className="property-value">HTTPS</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>Protocolo</span>
+                    <span style={{ fontSize: '12px', color: '#1a1d21', fontWeight: '600' }}>HTTPS</span>
                   </div>
-                  <div className="property-row">
-                    <span className="property-label">Encriptación</span>
-                    <span className="property-value">AES-256</span>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>Encriptación</span>
+                    <span style={{ fontSize: '12px', color: '#1a1d21', fontWeight: '600' }}>AES-256</span>
                   </div>
-                  <div className="property-row">
-                    <span className="property-label">Confiabilidad</span>
-                    <span className="property-value">99.5%</span>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>Confiabilidad</span>
+                    <span style={{ fontSize: '12px', color: '#1a1d21', fontWeight: '600' }}>99.5%</span>
                   </div>
-                  <div className="property-row">
-                    <span className="property-label">Última Prueba</span>
-                    <span className="property-value">{new Date().toLocaleDateString()}</span>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>Última Prueba</span>
+                    <span style={{ fontSize: '12px', color: '#1a1d21', fontWeight: '600' }}>{new Date().toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
